@@ -4,9 +4,13 @@ import {
   MetaStats, 
   ViewMode, 
   ColumnVisibility, 
-  MetaIntegrationConfig 
+  MetaIntegrationConfig,
+  MetaCampaignInsight,
+  MetaMarketingApiConfig,
+  CRMSettings
 } from '../types/crm';
 import { INITIAL_LEADS, DEFAULT_DROPDOWN_SETTINGS } from './mockData';
+import { DEFAULT_MARKETING_CONFIG, DEFAULT_CRM_SETTINGS, INITIAL_CAMPAIGN_INSIGHTS } from './metaAdsService';
 
 const STORAGE_KEYS = {
   LEADS: 'nexus_meta_leads_v2',
@@ -14,6 +18,9 @@ const STORAGE_KEYS = {
   VIEW_MODE: 'nexus_meta_view_mode_v2',
   COLUMNS: 'nexus_meta_columns_v2',
   META_INTEGRATION: 'nexus_meta_integration_v2',
+  MARKETING_CONFIG: 'nexus_meta_marketing_config_v2',
+  CRM_SETTINGS: 'nexus_crm_settings_v2',
+  CAMPAIGN_INSIGHTS: 'nexus_campaign_insights_v2',
 };
 
 export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
@@ -115,12 +122,39 @@ export class MetaStorageService {
     saveToStorage(STORAGE_KEYS.META_INTEGRATION, config);
   }
 
+  static getMarketingConfig(): MetaMarketingApiConfig {
+    return getFromStorage<MetaMarketingApiConfig>(STORAGE_KEYS.MARKETING_CONFIG, DEFAULT_MARKETING_CONFIG);
+  }
+
+  static saveMarketingConfig(config: MetaMarketingApiConfig): void {
+    saveToStorage(STORAGE_KEYS.MARKETING_CONFIG, config);
+  }
+
+  static getCrmSettings(): CRMSettings {
+    return getFromStorage<CRMSettings>(STORAGE_KEYS.CRM_SETTINGS, DEFAULT_CRM_SETTINGS);
+  }
+
+  static saveCrmSettings(settings: CRMSettings): void {
+    saveToStorage(STORAGE_KEYS.CRM_SETTINGS, settings);
+  }
+
+  static getCampaignInsights(): MetaCampaignInsight[] {
+    return getFromStorage<MetaCampaignInsight[]>(STORAGE_KEYS.CAMPAIGN_INSIGHTS, INITIAL_CAMPAIGN_INSIGHTS);
+  }
+
+  static saveCampaignInsights(insights: MetaCampaignInsight[]): void {
+    saveToStorage(STORAGE_KEYS.CAMPAIGN_INSIGHTS, insights);
+  }
+
   static resetToDefault(): void {
     localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(INITIAL_LEADS));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_DROPDOWN_SETTINGS));
     localStorage.setItem(STORAGE_KEYS.VIEW_MODE, JSON.stringify('table'));
     localStorage.setItem(STORAGE_KEYS.COLUMNS, JSON.stringify(DEFAULT_COLUMN_VISIBILITY));
     localStorage.setItem(STORAGE_KEYS.META_INTEGRATION, JSON.stringify(DEFAULT_META_CONFIG));
+    localStorage.setItem(STORAGE_KEYS.MARKETING_CONFIG, JSON.stringify(DEFAULT_MARKETING_CONFIG));
+    localStorage.setItem(STORAGE_KEYS.CRM_SETTINGS, JSON.stringify(DEFAULT_CRM_SETTINGS));
+    localStorage.setItem(STORAGE_KEYS.CAMPAIGN_INSIGHTS, JSON.stringify(INITIAL_CAMPAIGN_INSIGHTS));
   }
 
   static calculateStats(leads: MetaLead[]): MetaStats {
@@ -153,14 +187,16 @@ export class MetaStorageService {
     };
   }
 
-
   static exportAllData(): string {
     const exportData = {
-      version: '2.5-meta-crm',
+      version: '3.0-meta-crm',
       exportedAt: new Date().toISOString(),
       leads: this.getLeads(),
       dropdownSettings: this.getDropdownSettings(),
       metaConfig: this.getMetaIntegrationConfig(),
+      marketingConfig: this.getMarketingConfig(),
+      crmSettings: this.getCrmSettings(),
+      campaignInsights: this.getCampaignInsights(),
       columnVisibility: this.getColumnVisibility(),
     };
     return JSON.stringify(exportData, null, 2);
@@ -172,6 +208,9 @@ export class MetaStorageService {
       if (Array.isArray(parsed.leads)) this.saveLeads(parsed.leads);
       if (parsed.dropdownSettings) this.saveDropdownSettings(parsed.dropdownSettings);
       if (parsed.metaConfig) this.saveMetaIntegrationConfig(parsed.metaConfig);
+      if (parsed.marketingConfig) this.saveMarketingConfig(parsed.marketingConfig);
+      if (parsed.crmSettings) this.saveCrmSettings(parsed.crmSettings);
+      if (Array.isArray(parsed.campaignInsights)) this.saveCampaignInsights(parsed.campaignInsights);
       return true;
     } catch (e) {
       console.error('Import failed:', e);

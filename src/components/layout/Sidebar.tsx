@@ -9,7 +9,8 @@ import {
   Award, 
   Sliders, 
   Zap, 
-  Flame
+  Flame,
+  BarChart3
 } from 'lucide-react';
 
 interface NavItem {
@@ -40,6 +41,11 @@ export const Sidebar: React.FC = () => {
       badgeColor: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400 font-bold',
     },
     {
+      id: 'campaigns',
+      label: 'Meta Campaigns & Spend',
+      icon: BarChart3,
+    },
+    {
       id: 'calls',
       label: 'Calls & Reports',
       icon: PhoneCall,
@@ -60,13 +66,13 @@ export const Sidebar: React.FC = () => {
     },
     {
       id: 'integration',
-      label: 'Meta Ads Sync',
+      label: 'Meta Instant Form Sync',
       icon: Zap,
       dotColor: metaConfig.isConnected ? 'bg-emerald-500' : 'bg-slate-400',
     },
     {
       id: 'settings',
-      label: 'Editable Dropdowns',
+      label: 'CRM Settings Hub',
       icon: Sliders,
     },
   ];

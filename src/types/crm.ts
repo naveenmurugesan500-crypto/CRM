@@ -85,11 +85,55 @@ export interface MetaIntegrationConfig {
   lastSyncAt?: string;
 }
 
+export interface MetaCampaignInsight {
+  campaignId: string;
+  campaignName: string;
+  status: 'ACTIVE' | 'PAUSED' | 'ARCHIVED';
+  dailyBudget: number;
+  lifetimeBudget?: number;
+  amountSpent: number;
+  impressions: number;
+  reach: number;
+  clicks: number;
+  ctr: number; // Click-Through Rate %
+  cpm: number; // Cost per 1,000 impressions
+  leadsCount: number;
+  cpl: number; // Cost Per Lead = amountSpent / leadsCount
+  frequency: number;
+  currency: string;
+  dateRange: string;
+  moduleHint?: string;
+  adsetsCount?: number;
+  adsCount?: number;
+}
+
+export interface MetaMarketingApiConfig {
+  adAccountId: string;
+  accessToken: string;
+  appId: string;
+  appSecret: string;
+  pageId: string;
+  currency: string; // 'INR', 'USD', etc.
+  autoSyncInterval: string;
+  isConnected: boolean;
+  lastSyncAt?: string;
+  tokenPermissions?: string[];
+  accountName?: string;
+}
+
+export interface CRMSettings {
+  currency: string;
+  defaultCountryCode: string;
+  whatsappTemplate: string;
+  autoAssignCounselor: boolean;
+}
+
 export type TimeFilterPreset = 'today' | 'week' | 'month' | 'year' | 'custom' | 'all';
 
 export type NavigationTab = 
   | 'untouched'
   | 'leads'
+  | 'campaigns'
   | 'calls'
   | 'callbacks'
   | 'dashboard'

@@ -4,10 +4,13 @@ import {
   DropdownSettings, 
   MetaStats, 
   CallReport, 
-  StatusConfig,
-  ViewMode,
-  ColumnVisibility,
+  StatusConfig, 
+  ViewMode, 
+  ColumnVisibility, 
   MetaIntegrationConfig,
+  MetaCampaignInsight,
+  MetaMarketingApiConfig,
+  CRMSettings,
   NavigationTab
 } from '../types/crm';
 export type { NavigationTab };
@@ -17,6 +20,11 @@ import {
   DEFAULT_COLUMN_VISIBILITY, 
   DEFAULT_META_CONFIG 
 } from '../services/storage';
+import { 
+  DEFAULT_MARKETING_CONFIG, 
+  DEFAULT_CRM_SETTINGS, 
+  MetaAdsService 
+} from '../services/metaAdsService';
 
 interface CRMContextType {
   activeTab: NavigationTab;
@@ -40,6 +48,15 @@ interface CRMContextType {
   updateMetaConfig: (updates: Partial<MetaIntegrationConfig>) => void;
   simulateMetaLead: () => void;
   importMetaLeads: (newLeads: MetaLead[]) => void;
+
+  // Meta Marketing & Campaigns Insights
+  campaignInsights: MetaCampaignInsight[];
+  marketingConfig: MetaMarketingApiConfig;
+  updateMarketingConfig: (updates: Partial<MetaMarketingApiConfig>) => void;
+  crmSettings: CRMSettings;
+  updateCrmSettings: (updates: Partial<CRMSettings>) => void;
+  syncCampaignInsights: () => Promise<boolean>;
+  isSyncingCampaigns: boolean;
 
   // Modals & Selection
   selectedLead: MetaLead | null;
@@ -98,6 +115,12 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Meta Integration Config
   const [metaConfig, setMetaConfig] = useState<MetaIntegrationConfig>(() => MetaStorageService.getMetaIntegrationConfig());
 
+  // Meta Marketing & Campaigns Config & Insights
+  const [marketingConfig, setMarketingConfig] = useState<MetaMarketingApiConfig>(() => MetaStorageService.getMarketingConfig());
+  const [crmSettings, setCrmSettings] = useState<CRMSettings>(() => MetaStorageService.getCrmSettings());
+  const [campaignInsights, setCampaignInsights] = useState<MetaCampaignInsight[]>(() => MetaStorageService.getCampaignInsights());
+  const [isSyncingCampaigns, setIsSyncingCampaigns] = useState(false);
+
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
@@ -138,6 +161,41 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     MetaStorageService.saveMetaIntegrationConfig(metaConfig);
   }, [metaConfig]);
+
+  useEffect(() => {
+    MetaStorageService.saveMarketingConfig(marketingConfig);
+  }, [marketingConfig]);
+
+  useEffect(() => {
+    MetaStorageService.saveCrmSettings(crmSettings);
+  }, [crmSettings]);
+
+  useEffect(() => {
+    MetaStorageService.saveCampaignInsights(campaignInsights);
+  }, [campaignInsights]);
+
+  const updateMarketingConfig = (updates: Partial<MetaMarketingApiConfig>) => {
+    setMarketingConfig(prev => ({ ...prev, ...updates }));
+  };
+
+  const updateCrmSettings = (updates: Partial<CRMSettings>) => {
+    setCrmSettings(prev => ({ ...prev, ...updates }));
+  };
+
+  const syncCampaignInsights = async (): Promise<boolean> => {
+    setIsSyncingCampaigns(true);
+    try {
+      const liveData = await MetaAdsService.fetchCampaignInsights(marketingConfig);
+      setCampaignInsights(liveData);
+      setMarketingConfig(prev => ({ ...prev, lastSyncAt: new Date().toISOString() }));
+      return true;
+    } catch (err) {
+      console.error('Failed to sync campaign insights:', err);
+      return false;
+    } finally {
+      setIsSyncingCampaigns(false);
+    }
+  };
 
   const stats = MetaStorageService.calculateStats(leads);
 
@@ -382,6 +440,9 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setViewModeState('table');
     setColumnVisibility(DEFAULT_COLUMN_VISIBILITY);
     setMetaConfig(DEFAULT_META_CONFIG);
+    setMarketingConfig(DEFAULT_MARKETING_CONFIG);
+    setCrmSettings(DEFAULT_CRM_SETTINGS);
+    setCampaignInsights(MetaStorageService.getCampaignInsights());
   };
 
   const exportDatabase = () => {
@@ -416,6 +477,9 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setLeads(MetaStorageService.getLeads());
       setDropdownSettings(MetaStorageService.getDropdownSettings());
       setMetaConfig(MetaStorageService.getMetaIntegrationConfig());
+      setMarketingConfig(MetaStorageService.getMarketingConfig());
+      setCrmSettings(MetaStorageService.getCrmSettings());
+      setCampaignInsights(MetaStorageService.getCampaignInsights());
       return true;
     }
     return false;
@@ -440,6 +504,13 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateMetaConfig,
         simulateMetaLead,
         importMetaLeads,
+        campaignInsights,
+        marketingConfig,
+        updateMarketingConfig,
+        crmSettings,
+        updateCrmSettings,
+        syncCampaignInsights,
+        isSyncingCampaigns,
         selectedLead,
         setSelectedLead,
         leadToLogCall,

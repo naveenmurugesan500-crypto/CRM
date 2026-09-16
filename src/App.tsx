@@ -8,7 +8,8 @@ import { LeadTable } from './components/leads/LeadTable';
 import { CallsView } from './components/calls/CallsView';
 import { CallBackQueue } from './components/callbacks/CallBackQueue';
 import { MetaIntegrationView } from './components/integration/MetaIntegrationView';
-import { DropdownEditor } from './components/settings/DropdownEditor';
+import { MetaCampaignsView } from './components/campaigns/MetaCampaignsView';
+import { SettingsView } from './components/settings/SettingsView';
 import { CallReportModal } from './components/leads/CallReportModal';
 import { LeadModal } from './components/leads/LeadModal';
 import { 
@@ -18,7 +19,8 @@ import {
   PhoneCall, 
   Clock, 
   Sliders, 
-  Zap 
+  Zap,
+  BarChart3 
 } from 'lucide-react';
 
 const CRMMainContent: React.FC = () => {
@@ -39,10 +41,11 @@ const CRMMainContent: React.FC = () => {
           {activeTab === 'dashboard' && <DashboardView />}
           {activeTab === 'untouched' && <UntouchedLeadsView />}
           {activeTab === 'leads' && <LeadTable />}
+          {activeTab === 'campaigns' && <MetaCampaignsView />}
           {activeTab === 'calls' && <CallsView />}
           {activeTab === 'callbacks' && <CallBackQueue />}
           {activeTab === 'integration' && <MetaIntegrationView />}
-          {activeTab === 'settings' && <DropdownEditor />}
+          {activeTab === 'settings' && <SettingsView />}
         </main>
       </div>
 
