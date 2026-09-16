@@ -22,10 +22,12 @@ import {
   Phone,
   HelpCircle,
   Copy,
-  Check
+  Check,
+  BookOpen,
+  Info
 } from 'lucide-react';
 
-type SettingsTab = 'meta_api' | 'dropdowns' | 'communication' | 'backup';
+type SettingsTab = 'meta_api' | 'guide' | 'dropdowns' | 'communication' | 'backup';
 
 export const SettingsView: React.FC = () => {
   const { 
@@ -198,6 +200,18 @@ export const SettingsView: React.FC = () => {
         >
           <Zap className="h-4 w-4" />
           Meta Ads & Marketing API
+        </button>
+
+        <button
+          onClick={() => setActiveTab('guide')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all cursor-pointer ${
+            activeTab === 'guide'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          <BookOpen className="h-4 w-4" />
+          Step-by-Step Connection Guide
         </button>
 
         <button
@@ -445,6 +459,190 @@ export const SettingsView: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Tab: Step-by-Step Connection Guide */}
+      {activeTab === 'guide' && (
+        <div className="space-y-6">
+          {/* Header Banner */}
+          <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/80 via-blue-50/40 to-slate-50 p-6 dark:border-indigo-950/60 dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-900 space-y-2">
+            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-lg">
+              <BookOpen className="h-5 w-5" />
+              <span>Complete Step-by-Step Guide: Connecting Meta & This CRM</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-3xl">
+              Follow these simple steps to synchronize <strong>all data</strong> from Meta Ads Manager (Facebook & Instagram): Total Ad Spend, Daily Budgets, CPL, Impressions, Reach, Clicks, and Real-Time Instant Form Leads directly into your Untouched Leads queue.
+            </p>
+          </div>
+
+          {/* Quick Summary Cards */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-1.5">
+              <span className="text-[11px] font-black uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                <Zap className="h-3.5 w-3.5" /> 1. Marketing Spend API
+              </span>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white">Budget, Spend & CPL</h4>
+              <p className="text-xs text-slate-500">
+                Syncs daily budget, spend, cost per lead, impressions, and CTR via Meta Graph API v20.0.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-1.5">
+              <span className="text-[11px] font-black uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5" /> 2. Real-Time Leads
+              </span>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white">Instant Forms & Webhook</h4>
+              <p className="text-xs text-slate-500">
+                Pushes prospect Name, Phone, Email, Campaign attribution, and Date/Time directly into Untouched Leads.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-1.5">
+              <span className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <Upload className="h-3.5 w-3.5" /> 3. Instant CSV Import
+              </span>
+              <h4 className="font-bold text-sm text-slate-900 dark:text-white">Zero-Code Quick Sync</h4>
+              <p className="text-xs text-slate-500">
+                Download official Meta Ads CSV export and drag-and-drop to import hundreds of past leads in 2 seconds.
+              </p>
+            </div>
+          </div>
+
+          {/* Detailed Steps */}
+          <div className="space-y-4">
+            {/* Step 1 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-xs font-black text-white">1</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Create a Meta App in Meta for Developers
+                </h3>
+              </div>
+              <div className="pl-9 space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p>1. Open your web browser and navigate to <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-semibold dark:text-indigo-400">developers.facebook.com <ExternalLink className="inline h-3 w-3" /></a> and log in with your Facebook account.</p>
+                <p>2. Click <strong>My Apps</strong> in the top-right corner $\rightarrow$ click <strong>Create App</strong>.</p>
+                <p>3. Select <strong>Other</strong> as your use case $\rightarrow$ click <strong>Next</strong>.</p>
+                <p>4. Select <strong>Business</strong> as the App Type $\rightarrow$ click <strong>Next</strong>.</p>
+                <p>5. Enter an App Name (e.g. <em>Nexus CRM Integration</em>) and select your Meta Business Account $\rightarrow$ click <strong>Create App</strong>.</p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-xs font-black text-white">2</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Add "Marketing API" & "Webhooks" Products
+                </h3>
+              </div>
+              <div className="pl-9 space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p>1. In your Meta App Dashboard sidebar, scroll down to <strong>Add Products</strong>.</p>
+                <p>2. Find <strong>Marketing API</strong> $\rightarrow$ click <strong>Set Up</strong>.</p>
+                <p>3. Find <strong>Webhooks</strong> $\rightarrow$ click <strong>Set Up</strong>.</p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-xs font-black text-white">3</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Generate a Permanent (Never-Expiring) System User Token
+                </h3>
+              </div>
+              <div className="pl-9 space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p>Standard user tokens expire after 60 days. Creating a <strong>System User Token</strong> ensures permanent, uninterrupted CRM sync 24/7:</p>
+                <p>1. Open <a href="https://business.facebook.com/settings" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-semibold dark:text-indigo-400">business.facebook.com/settings <ExternalLink className="inline h-3 w-3" /></a> (Business Settings).</p>
+                <p>2. Under <strong>Users</strong> in the left menu, click <strong>System Users</strong> $\rightarrow$ click <strong>Add</strong>.</p>
+                <p>3. Set Name to <em>CRM Lead Bot</em> and System User Role to <strong>Admin</strong> $\rightarrow$ click <strong>Create System User</strong>.</p>
+                <p>4. Click <strong>Assign Assets</strong>:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Under <strong>Pages</strong>: Select your Facebook Page $\rightarrow$ enable <strong>Full Control</strong>.</li>
+                  <li>Under <strong>Ad Accounts</strong>: Select your Ad Account $\rightarrow$ enable <strong>Full Control</strong> (Manage Campaigns).</li>
+                </ul>
+                <p>5. Click <strong>Generate New Token</strong>:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Select your App from the dropdown.</li>
+                  <li>Set Token Expiration: <strong>Never</strong>.</li>
+                  <li>Check the following required permissions:
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {['ads_read', 'read_insights', 'leads_retrieval', 'pages_manage_ads', 'pages_read_engagement', 'pages_show_list'].map(scope => (
+                        <code key={scope} className="rounded bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 font-mono text-[11px] text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-800">
+                          {scope}
+                        </code>
+                      ))}
+                    </div>
+                  </li>
+                </ul>
+                <p>6. Click <strong>Generate Token</strong> $\rightarrow$ copy the generated string (starts with <code>EAA...</code>).</p>
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-xs font-black text-white">4</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Locate Your Meta Ad Account ID (`act_...`)
+                </h3>
+              </div>
+              <div className="pl-9 space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p>1. Open <a href="https://adsmanager.facebook.com" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline font-semibold dark:text-indigo-400">adsmanager.facebook.com <ExternalLink className="inline h-3 w-3" /></a>.</p>
+                <p>2. Look at the top-left account selector dropdown or your browser's address bar:</p>
+                <div className="rounded-lg bg-slate-100 dark:bg-slate-800 p-2 font-mono text-[11px] text-slate-700 dark:text-slate-300">
+                  https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=<span className="text-indigo-600 dark:text-indigo-400 font-bold">120248848255150533</span>
+                </div>
+                <p>3. Your Ad Account ID is <code>act_120248848255150533</code>.</p>
+              </div>
+            </div>
+
+            {/* Step 5 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-xs font-black text-white">5</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Save Credentials in CRM & Verify with 1-Click Test
+                </h3>
+              </div>
+              <div className="pl-9 space-y-3 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p>1. Go to the <strong>Meta Ads & Marketing API</strong> tab right above.</p>
+                <p>2. Paste your <strong>Ad Account ID</strong> and <strong>Access Token</strong>.</p>
+                <p>3. Select your currency (e.g. <strong>INR ₹</strong> or <strong>USD $</strong>).</p>
+                <p>4. Click <strong>Test Connection</strong>. You will receive an instant diagnostic green confirmation showing active token permissions.</p>
+                <p>5. Click <strong>Save Meta API Settings</strong>.</p>
+                <div className="pt-2">
+                  <button
+                    onClick={() => setActiveTab('meta_api')}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    Open Meta Ads & Marketing API Tab Now
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 6 */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600 text-xs font-black text-white">6</span>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Real-Time Lead Webhook Subscription
+                </h3>
+              </div>
+              <div className="pl-9 space-y-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p>1. In Meta App Dashboard $\rightarrow$ <strong>Webhooks</strong> $\rightarrow$ select <strong>Page</strong> in the dropdown.</p>
+                <p>2. Click <strong>Subscribe to this object</strong>:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Callback URL: Enter your CRM deployment URL or webhook endpoint.</li>
+                  <li>Verify Token: <code>nexus_meta_leads_verify_token_2026</code></li>
+                </ul>
+                <p>3. In the list of subscription fields, locate <strong>`leadgen`</strong> $\rightarrow$ click <strong>Subscribe</strong>.</p>
+                <p>4. Now, any time a candidate submits a lead form on Facebook or Instagram, Meta sends the lead data (Name, Phone, Email, Campaign, Adset, Ad, Form Responses, Submission Date & Time) directly into your <strong>Untouched Leads</strong> queue!</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
