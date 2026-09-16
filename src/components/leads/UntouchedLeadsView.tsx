@@ -23,7 +23,8 @@ import {
 import { 
   formatDate, 
   formatDateTime, 
-  cleanPhoneForWhatsApp 
+  cleanPhoneForWhatsApp,
+  formatLeadTime 
 } from '../../utils/formatters';
 
 export const UntouchedLeadsView: React.FC = () => {
@@ -291,7 +292,7 @@ export const UntouchedLeadsView: React.FC = () => {
               <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
                 <tr>
                   <th className="py-3.5 pl-4 pr-3">Autofilled Prospect</th>
-                  <th className="py-3.5 px-3">Date</th>
+                  <th className="py-3.5 px-3">Date & Time</th>
                   <th className="py-3.5 px-3">Direct Connect</th>
                   <th className="py-3.5 px-3">Module</th>
                   <th className="py-3.5 px-3">Meta Ad Attribution</th>
@@ -332,11 +333,15 @@ export const UntouchedLeadsView: React.FC = () => {
                         </div>
                       </td>
 
-                      {/* Date of Lead */}
+                      {/* Date & Time of Lead Collection */}
                       <td className="py-3.5 px-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                        <div className="flex items-center space-x-1">
+                        <div className="flex items-center space-x-1 font-semibold text-slate-800 dark:text-slate-200">
                           <Calendar className="h-3 w-3 text-slate-400" />
                           <span>{formatDate(lead.dateOfLead)}</span>
+                        </div>
+                        <div className="flex items-center space-x-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
+                          <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                          <span>{lead.timeOfLead || formatLeadTime(lead.timeOfLead, lead.createdAt)}</span>
                         </div>
                       </td>
 
@@ -560,6 +565,15 @@ export const UntouchedLeadsView: React.FC = () => {
                 </div>
 
                 <div className="text-[11px] text-slate-500 dark:text-slate-400 grid grid-cols-2 gap-1 pt-1">
+                  <div className="col-span-2 flex items-center gap-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 pb-1 mb-1 border-b border-slate-200/60 dark:border-slate-700/60">
+                    <Calendar className="h-3.5 w-3.5 text-indigo-500" />
+                    <span>Lead Collected:</span>
+                    <span className="text-indigo-600 dark:text-indigo-400 font-bold">{formatDate(leadToProcess.dateOfLead)}</span>
+                    <span>at</span>
+                    <span className="font-mono bg-indigo-50 dark:bg-indigo-950 px-1.5 py-0.5 rounded text-indigo-700 dark:text-indigo-300">
+                      {leadToProcess.timeOfLead || formatLeadTime(leadToProcess.timeOfLead, leadToProcess.createdAt)}
+                    </span>
+                  </div>
                   <div>
                     <span className="font-medium text-slate-400">Campaign: </span>
                     <span className="font-semibold text-slate-700 dark:text-slate-300">{leadToProcess.campaignName || 'N/A'}</span>

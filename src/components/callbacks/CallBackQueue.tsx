@@ -11,9 +11,11 @@ import {
   BookOpen 
 } from 'lucide-react';
 import { 
+  formatDate,
   formatDateTime, 
   cleanPhoneForWhatsApp, 
-  getCallBackUrgency 
+  getCallBackUrgency,
+  formatLeadTime 
 } from '../../utils/formatters';
 
 export const CallBackQueue: React.FC = () => {
@@ -203,6 +205,11 @@ export const CallBackQueue: React.FC = () => {
                     <span className="text-xs text-slate-400">
                       • Assigned to: <strong className="text-slate-600 dark:text-slate-300">{lead.hrName}</strong>
                     </span>
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 font-medium">
+                    <Calendar className="h-3 w-3 text-slate-400" />
+                    <span>Lead Collected: {formatDate(lead.dateOfLead)} at <strong className="font-mono text-indigo-600 dark:text-indigo-400">{lead.timeOfLead || formatLeadTime(lead.timeOfLead, lead.createdAt)}</strong></span>
                   </div>
 
                   {/* Scheduled callback time banner */}

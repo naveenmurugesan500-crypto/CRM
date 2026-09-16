@@ -27,7 +27,8 @@ import {
   formatDateTime, 
   getStatusStyle, 
   cleanPhoneForWhatsApp, 
-  getCallBackUrgency 
+  getCallBackUrgency,
+  formatLeadTime 
 } from '../../utils/formatters';
 
 export const LeadTable: React.FC = () => {
@@ -244,7 +245,7 @@ export const LeadTable: React.FC = () => {
               <thead className="border-b border-slate-200 bg-slate-50 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
                 <tr>
                   <th className="py-3.5 pl-4 pr-3">Lead</th>
-                  {columnVisibility.showDate && <th className="py-3.5 px-3">Date of Lead</th>}
+                  {columnVisibility.showDate && <th className="py-3.5 px-3">Date & Time</th>}
                   <th className="py-3.5 px-3">Phone / WhatsApp</th>
                   {columnVisibility.showEmail && <th className="py-3.5 px-3">Email</th>}
                   {columnVisibility.showModule && <th className="py-3.5 px-3">Module</th>}
@@ -286,10 +287,16 @@ export const LeadTable: React.FC = () => {
                           </div>
                         </td>
 
-                        {/* Date of Lead */}
+                        {/* Date & Time of Lead */}
                         {columnVisibility.showDate && (
-                          <td className="py-3 px-3 text-xs text-slate-500 dark:text-slate-400">
-                            {formatDate(lead.dateOfLead)}
+                          <td className="py-3 px-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            <div className="font-semibold text-slate-800 dark:text-slate-200">
+                              {formatDate(lead.dateOfLead)}
+                            </div>
+                            <div className="flex items-center space-x-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-mono mt-0.5">
+                              <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                              <span>{lead.timeOfLead || formatLeadTime(lead.timeOfLead, lead.createdAt)}</span>
+                            </div>
                           </td>
                         )}
 

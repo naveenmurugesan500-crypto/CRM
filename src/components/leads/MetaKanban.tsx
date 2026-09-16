@@ -19,7 +19,8 @@ import {
   formatDateTime, 
   cleanPhoneForWhatsApp, 
   getCallBackUrgency,
-  getStatusStyle 
+  getStatusStyle,
+  formatLeadTime 
 } from '../../utils/formatters';
 
 interface MetaKanbanProps {
@@ -109,7 +110,7 @@ export const MetaKanban: React.FC<MetaKanbanProps> = ({ filteredLeads }) => {
                           </span>
                         </div>
 
-                        {/* Name & Phone */}
+                        {/* Name & Phone & Collection Time */}
                         <div>
                           <h4 
                             onClick={() => { setLeadToEdit(lead); setIsLeadModalOpen(true); }}
@@ -117,8 +118,12 @@ export const MetaKanban: React.FC<MetaKanbanProps> = ({ filteredLeads }) => {
                           >
                             {lead.name}
                           </h4>
-                          <div className="flex items-center space-x-1 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                             <span>{lead.phone}</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono flex items-center gap-0.5">
+                              <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                              {lead.timeOfLead || formatLeadTime(lead.timeOfLead, lead.createdAt)}
+                            </span>
                           </div>
                         </div>
 

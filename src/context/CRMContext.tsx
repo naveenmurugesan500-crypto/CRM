@@ -238,6 +238,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       email: `${pickedName.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
       module: pickedModule,
       dateOfLead: new Date().toISOString().slice(0, 10),
+      timeOfLead: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
       campaignName: randomCampaign,
       adsetName: 'Audience_Tech_Graduates',
       adName: randomAd,
@@ -258,6 +259,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addLead = (data: Omit<MetaLead, 'id' | 'createdAt' | 'callReports'>) => {
     const newLead: MetaLead = {
       ...data,
+      timeOfLead: data.timeOfLead || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
       id: `lead-${Date.now()}`,
       createdAt: new Date().toISOString(),
       isProcessed: !!data.hrName && data.status !== 'Untouched',

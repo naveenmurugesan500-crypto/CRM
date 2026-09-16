@@ -15,6 +15,7 @@ export interface MetaLead {
   email: string;
   module: string; // e.g. SAP, AWS, CLOUD COMPUTING SUITE, DATA SCIENCE, DATA ANALYTICS, AI
   dateOfLead: string;
+  timeOfLead?: string; // Exact time lead was collected / submitted (e.g. '10:30 AM', '14:35')
   campaignName: string;
   adsetName: string;
   adName: string;

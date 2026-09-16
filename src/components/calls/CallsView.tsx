@@ -18,7 +18,8 @@ import {
   formatDateTime, 
   formatRelativeTime, 
   cleanPhoneForWhatsApp, 
-  getStatusStyle 
+  getStatusStyle,
+  formatLeadTime 
 } from '../../utils/formatters';
 
 interface CallWithLead extends CallReport {
@@ -251,6 +252,13 @@ export const CallsView: React.FC = () => {
                             </div>
                             <div className="text-[11px] text-slate-400">
                               {call.lead.phone}
+                            </div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5 flex items-center gap-1">
+                              <Calendar className="h-2.5 w-2.5 text-slate-400" />
+                              <span>{formatDate(call.lead.dateOfLead)}</span>
+                              <span>•</span>
+                              <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                              <span>{call.lead.timeOfLead || formatLeadTime(call.lead.timeOfLead, call.lead.createdAt)}</span>
                             </div>
                           </div>
                         ) : (

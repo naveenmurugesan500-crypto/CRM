@@ -71,6 +71,7 @@ export class MetaStorageService {
     const raw = getFromStorage<MetaLead[]>(STORAGE_KEYS.LEADS, INITIAL_LEADS);
     const normalized = raw.map(l => ({
       ...l,
+      timeOfLead: l.timeOfLead || (l.createdAt ? new Date(l.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:00 AM'),
       isProcessed: l.isProcessed !== undefined 
         ? l.isProcessed 
         : ((l.callReports && l.callReports.length > 0) || (!!l.hrName && l.status !== 'Untouched')),
@@ -226,6 +227,7 @@ export class MetaStorageService {
       'Email',
       'Module',
       'Date of Lead',
+      'Time of Lead',
       'Campaign Name',
       'Adset Name',
       'Ad Name',
@@ -243,6 +245,7 @@ export class MetaStorageService {
       `"${(l.email || '').replace(/"/g, '""')}"`,
       `"${(l.module || '').replace(/"/g, '""')}"`,
       l.dateOfLead || '',
+      `"${l.timeOfLead || ''}"`,
       `"${(l.campaignName || '').replace(/"/g, '""')}"`,
       `"${(l.adsetName || '').replace(/"/g, '""')}"`,
       `"${(l.adName || '').replace(/"/g, '""')}"`,
@@ -357,7 +360,27 @@ export class MetaStorageService {
       const rawCamp = campIdx !== -1 ? cols[campIdx] : 'Meta Campaign';
       const rawAdset = adsetIdx !== -1 ? cols[adsetIdx] : '';
       const rawAd = adIdx !== -1 ? cols[adIdx] : '';
-      const rawDate = dateIdx !== -1 && cols[dateIdx] ? cols[dateIdx].slice(0, 10) : new Date().toISOString().slice(0, 10);
+      
+      let rawDate = new Date().toISOString().slice(0, 10);
+      let rawTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      if (dateIdx !== -1 && cols[dateIdx]) {
+        const rawDateVal = cols[dateIdx].replace(/^["']|["']$/g, '').trim();
+        if (rawDateVal.includes('T')) {
+          rawDate = rawDateVal.slice(0, 10);
+          try {
+            const parsedD = new Date(rawDateVal);
+            if (!isNaN(parsedD.getTime())) {
+              rawTime = parsedD.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            }
+          } catch {}
+        } else if (rawDateVal.length >= 10) {
+          rawDate = rawDateVal.slice(0, 10);
+          if (rawDateVal.length > 11) {
+            rawTime = rawDateVal.slice(11, 19).trim();
+          }
+        }
+      }
+
       const rawCity = cityIdx !== -1 ? cols[cityIdx] : '';
       const rawForm = formIdx !== -1 ? cols[formIdx] : '';
       const rawPlatform = platformIdx !== -1 ? cols[platformIdx] : 'fb';
@@ -421,6 +444,7 @@ export class MetaStorageService {
         email: rawEmail,
         module,
         dateOfLead: rawDate,
+        timeOfLead: rawTime,
         campaignName: rawCamp.replace(/^["']|["']$/g, '').trim(),
         adsetName: rawAdset.replace(/^["']|["']$/g, '').trim(),
         adName: rawAd.replace(/^["']|["']$/g, '').trim(),

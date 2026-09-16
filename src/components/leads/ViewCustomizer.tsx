@@ -29,7 +29,7 @@ export const ViewCustomizer: React.FC<ViewCustomizerProps> = ({ onApplyPreset, a
   const [showColumnMenu, setShowColumnMenu] = useState(false);
 
   const columnsList: { key: keyof ColumnVisibility; label: string }[] = [
-    { key: 'showDate', label: 'Date of Lead' },
+    { key: 'showDate', label: 'Date & Time of Lead' },
     { key: 'showEmail', label: 'Email Address' },
     { key: 'showModule', label: 'Course Module' },
     { key: 'showCampaign', label: 'Campaign Name' },

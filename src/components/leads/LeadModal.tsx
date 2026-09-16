@@ -19,6 +19,7 @@ export const LeadModal: React.FC = () => {
   const [email, setEmail] = useState('');
   const [module, setModule] = useState('DATA SCIENCE');
   const [dateOfLead, setDateOfLead] = useState(new Date().toISOString().slice(0, 10));
+  const [timeOfLead, setTimeOfLead] = useState('');
   const [campaignName, setCampaignName] = useState('');
   const [adsetName, setAdsetName] = useState('');
   const [adName, setAdName] = useState('');
@@ -34,6 +35,7 @@ export const LeadModal: React.FC = () => {
       setEmail(leadToEdit.email || '');
       setModule(leadToEdit.module || dropdownSettings.modules[0] || 'DATA SCIENCE');
       setDateOfLead(leadToEdit.dateOfLead || new Date().toISOString().slice(0, 10));
+      setTimeOfLead(leadToEdit.timeOfLead || (leadToEdit.createdAt ? new Date(leadToEdit.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:30 AM'));
       setCampaignName(leadToEdit.campaignName || '');
       setAdsetName(leadToEdit.adsetName || '');
       setAdName(leadToEdit.adName || '');
@@ -47,6 +49,7 @@ export const LeadModal: React.FC = () => {
       setEmail('');
       setModule(dropdownSettings.modules[0] || 'DATA SCIENCE');
       setDateOfLead(new Date().toISOString().slice(0, 10));
+      setTimeOfLead(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
       setCampaignName('Meta_Leads_Sept26');
       setAdsetName('Graduates_Tech_Audience');
       setAdName('Ad_Video_CourseBenefits');
@@ -77,6 +80,7 @@ export const LeadModal: React.FC = () => {
       email: email.trim(),
       module,
       dateOfLead,
+      timeOfLead: timeOfLead.trim() || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
       campaignName: campaignName.trim(),
       adsetName: adsetName.trim(),
       adName: adName.trim(),
@@ -152,7 +156,7 @@ export const LeadModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                 Email Address
@@ -167,7 +171,7 @@ export const LeadModal: React.FC = () => {
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Date of Lead
+                Date of Lead *
               </label>
               <input
                 type="date"
@@ -175,6 +179,18 @@ export const LeadModal: React.FC = () => {
                 value={dateOfLead}
                 onChange={(e) => setDateOfLead(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Time of Collection
+              </label>
+              <input
+                type="text"
+                placeholder="10:30 AM"
+                value={timeOfLead}
+                onChange={(e) => setTimeOfLead(e.target.value)}
+                className="w-full rounded-lg border border-slate-200 p-2 text-xs text-slate-900 focus:border-indigo-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 font-mono"
               />
             </div>
           </div>

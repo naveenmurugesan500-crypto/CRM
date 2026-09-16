@@ -16,7 +16,8 @@ import {
   formatDateTime, 
   cleanPhoneForWhatsApp, 
   getCallBackUrgency, 
-  getStatusStyle 
+  getStatusStyle,
+  formatLeadTime 
 } from '../../utils/formatters';
 
 interface MetaCardsViewProps {
@@ -78,9 +79,16 @@ export const MetaCardsView: React.FC<MetaCardsViewProps> = ({ filteredLeads }) =
                     {lead.name}
                   </h3>
                   {columnVisibility.showDate && (
-                    <div className="flex items-center space-x-1 text-xs text-slate-400 mt-0.5">
-                      <Calendar className="h-3 w-3" />
-                      <span>{formatDate(lead.dateOfLead)}</span>
+                    <div className="flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+                      <div className="flex items-center space-x-1">
+                        <Calendar className="h-3 w-3 text-slate-400" />
+                        <span>{formatDate(lead.dateOfLead)}</span>
+                      </div>
+                      <span>•</span>
+                      <div className="flex items-center space-x-1 text-indigo-600 dark:text-indigo-400 font-mono text-[11px]">
+                        <Clock className="h-2.5 w-2.5 text-indigo-500" />
+                        <span>{lead.timeOfLead || formatLeadTime(lead.timeOfLead, lead.createdAt)}</span>
+                      </div>
                     </div>
                   )}
                 </div>

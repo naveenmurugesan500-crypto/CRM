@@ -118,3 +118,27 @@ export function getCallBackUrgency(callBackTime?: string): { isOverdue: boolean;
     return { isOverdue: false, isToday: false, text: callBackTime };
   }
 }
+
+/**
+ * Formats lead collection time cleanly, extracting from timeOfLead or fallback createdAt ISO string
+ */
+export function formatLeadTime(timeOfLead?: string, createdAt?: string): string {
+  if (timeOfLead && timeOfLead.trim()) {
+    return timeOfLead.trim();
+  }
+  if (createdAt) {
+    try {
+      const date = new Date(createdAt);
+      if (!isNaN(date.getTime())) {
+        return new Intl.DateTimeFormat('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+        }).format(date);
+      }
+    } catch {
+      // ignore
+    }
+  }
+  return '10:00 AM';
+}
