@@ -1,0 +1,404 @@
+import { 
+  MetaLead, 
+  DropdownSettings, 
+  MetaStats, 
+  ViewMode, 
+  ColumnVisibility, 
+  MetaIntegrationConfig 
+} from '../types/crm';
+import { INITIAL_LEADS, DEFAULT_DROPDOWN_SETTINGS } from './mockData';
+
+const STORAGE_KEYS = {
+  LEADS: 'nexus_meta_leads_v2',
+  SETTINGS: 'nexus_meta_dropdown_settings_v2',
+  VIEW_MODE: 'nexus_meta_view_mode_v2',
+  COLUMNS: 'nexus_meta_columns_v2',
+  META_INTEGRATION: 'nexus_meta_integration_v2',
+};
+
+export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
+  showEmail: true,
+  showDate: true,
+  showModule: true,
+  showCampaign: true,
+  showAdset: true,
+  showAdName: true,
+  showHr: true,
+  showStatus: true,
+  showCallBack: true,
+  showCallsCount: true,
+};
+
+export const DEFAULT_META_CONFIG: MetaIntegrationConfig = {
+  pageId: '108492049102948',
+  appId: '827491048291042',
+  appSecret: '8f94a82c9e81b947c94b8e2194a73b2c',
+  accessToken: 'EAAL8b...[Meta_Page_Access_Token]',
+  verifyToken: 'nexus_meta_leads_verify_token_2026',
+  webhookEndpoint: 'https://api.yourdomain.com/webhooks/meta-leadgen',
+  isConnected: true,
+  lastSyncAt: new Date().toISOString(),
+};
+
+function getFromStorage<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error(`Failed to read ${key} from storage:`, e);
+    return fallback;
+  }
+}
+
+function saveToStorage<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    console.error(`Failed to save ${key} to storage:`, e);
+  }
+}
+
+export class MetaStorageService {
+  static getLeads(): MetaLead[] {
+    const raw = getFromStorage<MetaLead[]>(STORAGE_KEYS.LEADS, INITIAL_LEADS);
+    const normalized = raw.map(l => ({
+      ...l,
+      isProcessed: l.isProcessed !== undefined 
+        ? l.isProcessed 
+        : ((l.callReports && l.callReports.length > 0) || (!!l.hrName && l.status !== 'Untouched')),
+    }));
+
+    // Ensure all fresh INITIAL_LEADS (such as SIVAKUMAR) are included if not yet present
+    const existingIds = new Set(normalized.map(l => l.id));
+    const missingInitial = INITIAL_LEADS.filter(l => !existingIds.has(l.id));
+    if (missingInitial.length > 0) {
+      return [...missingInitial, ...normalized];
+    }
+
+    return normalized;
+  }
+
+  static saveLeads(leads: MetaLead[]): void {
+    saveToStorage(STORAGE_KEYS.LEADS, leads);
+  }
+
+  static getDropdownSettings(): DropdownSettings {
+    return getFromStorage<DropdownSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_DROPDOWN_SETTINGS);
+  }
+
+  static saveDropdownSettings(settings: DropdownSettings): void {
+    saveToStorage(STORAGE_KEYS.SETTINGS, settings);
+  }
+
+  static getViewMode(): ViewMode {
+    return getFromStorage<ViewMode>(STORAGE_KEYS.VIEW_MODE, 'table');
+  }
+
+  static saveViewMode(mode: ViewMode): void {
+    saveToStorage(STORAGE_KEYS.VIEW_MODE, mode);
+  }
+
+  static getColumnVisibility(): ColumnVisibility {
+    return getFromStorage<ColumnVisibility>(STORAGE_KEYS.COLUMNS, DEFAULT_COLUMN_VISIBILITY);
+  }
+
+  static saveColumnVisibility(columns: ColumnVisibility): void {
+    saveToStorage(STORAGE_KEYS.COLUMNS, columns);
+  }
+
+  static getMetaIntegrationConfig(): MetaIntegrationConfig {
+    return getFromStorage<MetaIntegrationConfig>(STORAGE_KEYS.META_INTEGRATION, DEFAULT_META_CONFIG);
+  }
+
+  static saveMetaIntegrationConfig(config: MetaIntegrationConfig): void {
+    saveToStorage(STORAGE_KEYS.META_INTEGRATION, config);
+  }
+
+  static resetToDefault(): void {
+    localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(INITIAL_LEADS));
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_DROPDOWN_SETTINGS));
+    localStorage.setItem(STORAGE_KEYS.VIEW_MODE, JSON.stringify('table'));
+    localStorage.setItem(STORAGE_KEYS.COLUMNS, JSON.stringify(DEFAULT_COLUMN_VISIBILITY));
+    localStorage.setItem(STORAGE_KEYS.META_INTEGRATION, JSON.stringify(DEFAULT_META_CONFIG));
+  }
+
+  static calculateStats(leads: MetaLead[]): MetaStats {
+    const totalLeads = leads.length;
+    const untouchedCount = leads.filter(l => !l.isProcessed).length;
+    const processedCount = leads.filter(l => l.isProcessed).length;
+    const registeredCount = leads.filter(l => l.isProcessed && l.status === 'Registration').length;
+    const pitchedCount = leads.filter(l => l.isProcessed && l.status === 'Pitched').length;
+    const callBackCount = leads.filter(l => l.isProcessed && l.status === 'Call Back').length;
+    const interestedCount = leads.filter(l => l.isProcessed && l.status === 'Interested').length;
+    const notInterestedCount = leads.filter(l => l.isProcessed && l.status === 'Not Interested').length;
+    
+    const conversionRate = processedCount > 0 
+      ? Math.round((registeredCount / processedCount) * 100) 
+      : 0;
+
+    const totalCallsLogged = leads.reduce((sum, l) => sum + (l.callReports?.length || 0), 0);
+
+    return {
+      totalLeads,
+      untouchedCount,
+      processedCount,
+      registeredCount,
+      pitchedCount,
+      callBackCount,
+      interestedCount,
+      notInterestedCount,
+      conversionRate,
+      totalCallsLogged,
+    };
+  }
+
+
+  static exportAllData(): string {
+    const exportData = {
+      version: '2.5-meta-crm',
+      exportedAt: new Date().toISOString(),
+      leads: this.getLeads(),
+      dropdownSettings: this.getDropdownSettings(),
+      metaConfig: this.getMetaIntegrationConfig(),
+      columnVisibility: this.getColumnVisibility(),
+    };
+    return JSON.stringify(exportData, null, 2);
+  }
+
+  static importData(jsonString: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (Array.isArray(parsed.leads)) this.saveLeads(parsed.leads);
+      if (parsed.dropdownSettings) this.saveDropdownSettings(parsed.dropdownSettings);
+      if (parsed.metaConfig) this.saveMetaIntegrationConfig(parsed.metaConfig);
+      return true;
+    } catch (e) {
+      console.error('Import failed:', e);
+      return false;
+    }
+  }
+
+  static exportLeadsToCSV(leads: MetaLead[]): string {
+    const headers = [
+      'ID',
+      'Name',
+      'Phone',
+      'Email',
+      'Module',
+      'Date of Lead',
+      'Campaign Name',
+      'Adset Name',
+      'Ad Name',
+      'HR Name',
+      'Lead Status',
+      'Call Back Time',
+      'Total Calls Logged',
+      'Notes'
+    ];
+
+    const rows = leads.map(l => [
+      l.id,
+      `"${(l.name || '').replace(/"/g, '""')}"`,
+      `"${(l.phone || '').replace(/"/g, '""')}"`,
+      `"${(l.email || '').replace(/"/g, '""')}"`,
+      `"${(l.module || '').replace(/"/g, '""')}"`,
+      l.dateOfLead || '',
+      `"${(l.campaignName || '').replace(/"/g, '""')}"`,
+      `"${(l.adsetName || '').replace(/"/g, '""')}"`,
+      `"${(l.adName || '').replace(/"/g, '""')}"`,
+      `"${(l.hrName || '').replace(/"/g, '""')}"`,
+      `"${(l.status || '').replace(/"/g, '""')}"`,
+      l.callBackTime || '',
+      l.callReports?.length || 0,
+      `"${(l.notes || '').replace(/"/g, '""')}"`
+    ]);
+
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  }
+
+  /**
+   * Parses official Meta Ads Manager Leads CSV / TSV Exports
+   * Handles:
+   * - UTF-16LE / UTF-8, null-byte cleaning
+   * - Delimiters: Tab (\t), Comma (,), Semicolon (;)
+   * - Meta phone format: removes 'p:' prefix, formats cleanly
+   * - Automatic Module inference from course questions, campaign names, form names
+   * - Captures custom form questions (which_sap_course, status, timeline, city, education)
+   */
+  static parseMetaAdsCSV(rawContent: string, defaultModule: string = 'SAP'): MetaLead[] {
+    if (!rawContent) return [];
+    
+    // 1. Clean null bytes from UTF-16 LE copy-pastes
+    const cleanContent = rawContent.replace(/\0/g, '');
+    const lines = cleanContent.split(/\r?\n/).filter(line => line.trim().length > 0);
+    if (lines.length < 2) return [];
+
+    // 2. Detect delimiter (tab vs comma vs semicolon)
+    const firstLine = lines[0];
+    const tabCount = (firstLine.match(/\t/g) || []).length;
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semicolonCount = (firstLine.match(/;/g) || []).length;
+    
+    let delimiter = ',';
+    if (tabCount >= commaCount && tabCount >= semicolonCount && tabCount > 0) {
+      delimiter = '\t';
+    } else if (semicolonCount > commaCount && semicolonCount > 0) {
+      delimiter = ';';
+    }
+
+    // 3. Row parser handling quotes and specified delimiter
+    const parseRow = (text: string): string[] => {
+      const p: string[] = [];
+      let cur = '';
+      let inQuote = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"') {
+          if (inQuote && text[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuote = !inQuote;
+          }
+        } else if (c === delimiter && !inQuote) {
+          p.push(cur.trim());
+          cur = '';
+        } else {
+          cur += c;
+        }
+      }
+      p.push(cur.trim());
+      return p;
+    };
+
+    // 4. Clean and normalize headers
+    const rawHeaders = parseRow(lines[0]);
+    const normalizedHeaders = rawHeaders.map(h => h.toLowerCase().replace(/["'\s_-]+/g, ''));
+
+    const findIdx = (keywords: string[]): number => {
+      for (const k of keywords) {
+        const idx = normalizedHeaders.findIndex(h => h.includes(k));
+        if (idx !== -1) return idx;
+      }
+      return -1;
+    };
+
+    const idIdx = findIdx(['id', 'leadid']);
+    const nameIdx = findIdx(['fullname', 'name', 'first_name']);
+    const phoneIdx = findIdx(['phonenumber', 'phone', 'mobile']);
+    const emailIdx = findIdx(['email', 'emailaddress']);
+    const campIdx = findIdx(['campaignname', 'campaign']);
+    const adsetIdx = findIdx(['adsetname', 'adset']);
+    const adIdx = findIdx(['adname', 'ad']);
+    const dateIdx = findIdx(['createdtime', 'date', 'created_at']);
+    const formIdx = findIdx(['formname', 'form']);
+    const platformIdx = findIdx(['platform']);
+    const cityIdx = findIdx(['city', 'location', 'town']);
+
+    // Find custom question indexes
+    const customQuestionIndices: { header: string; idx: number }[] = [];
+    rawHeaders.forEach((h, idx) => {
+      const norm = normalizedHeaders[idx];
+      const isStandard = ['id', 'createdtime', 'adid', 'adname', 'adsetid', 'adsetname', 'campaignid', 'campaignname', 'formid', 'formname', 'isorganic', 'platform', 'fullname', 'email', 'phonenumber', 'inboxurl', 'leadstatus'].includes(norm);
+      if (!isStandard && h.trim()) {
+        customQuestionIndices.push({ header: h.replace(/^["']|["']$/g, '').trim(), idx });
+      }
+    });
+
+    const importedLeads: MetaLead[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseRow(lines[i]);
+      if (cols.length === 0 || !cols.some(c => c)) continue;
+
+      let rawName = nameIdx !== -1 ? cols[nameIdx] : cols[0] || 'Meta Prospect';
+      let rawPhone = phoneIdx !== -1 ? cols[phoneIdx] : '';
+      let rawEmail = emailIdx !== -1 ? cols[emailIdx] : '';
+      const rawCamp = campIdx !== -1 ? cols[campIdx] : 'Meta Campaign';
+      const rawAdset = adsetIdx !== -1 ? cols[adsetIdx] : '';
+      const rawAd = adIdx !== -1 ? cols[adIdx] : '';
+      const rawDate = dateIdx !== -1 && cols[dateIdx] ? cols[dateIdx].slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const rawCity = cityIdx !== -1 ? cols[cityIdx] : '';
+      const rawForm = formIdx !== -1 ? cols[formIdx] : '';
+      const rawPlatform = platformIdx !== -1 ? cols[platformIdx] : 'fb';
+
+      // Clean quotes and prefixes
+      rawName = rawName.replace(/^["']|["']$/g, '').trim();
+      rawEmail = rawEmail.replace(/^["']|["']$/g, '').trim();
+      
+      // Clean Meta 'p:' phone prefix (e.g. p:+919600723986 -> +91 96007 23986)
+      rawPhone = rawPhone.replace(/^["']|["']$/g, '').replace(/^p:\s*/i, '').trim();
+      if (rawPhone.startsWith('+91') && rawPhone.length === 13) {
+        rawPhone = `+91 ${rawPhone.slice(3, 8)} ${rawPhone.slice(8)}`;
+      }
+
+      if (!rawPhone && !rawEmail && !rawName) continue;
+
+      // Extract custom question Q&A pairs
+      const qaParts: string[] = [];
+      let detectedCourse = '';
+
+      customQuestionIndices.forEach(({ header, idx }) => {
+        const val = cols[idx]?.replace(/^["']|["']$/g, '').trim();
+        if (val) {
+          if (header.toLowerCase().includes('course') || header.toLowerCase().includes('sap')) {
+            detectedCourse = val.replace(/_/g, ' ').toUpperCase();
+          }
+          const shortHeader = header
+            .replace(/^which_sap_course_are_you_interested_in\??/i, 'Course')
+            .replace(/^which_option_best_describes_your_current_status\??/i, 'Status')
+            .replace(/^when_are_you_planning_to_start_your_sap_training\??/i, 'Start')
+            .replace(/^education_level/i, 'Education')
+            .replace(/_/g, ' ');
+          qaParts.push(`${shortHeader}: ${val.replace(/_/g, ' ')}`);
+        }
+      });
+
+      // Module Auto-Detection from Campaign, Adset, Form, or Course question
+      const contextText = `${rawCamp} ${rawAdset} ${rawAd} ${rawForm} ${detectedCourse} ${qaParts.join(' ')}`.toLowerCase();
+      let module = defaultModule;
+      if (contextText.includes('sap')) {
+        module = 'SAP';
+      } else if (contextText.includes('aws')) {
+        module = 'AWS';
+      } else if (contextText.includes('cloud')) {
+        module = 'CLOUD COMPUTING SUITE';
+      } else if (contextText.includes('data science')) {
+        module = 'DATA SCIENCE';
+      } else if (contextText.includes('data analytics') || contextText.includes('power bi') || contextText.includes('analytics')) {
+        module = 'DATA ANALYTICS';
+      } else if (contextText.includes('ai') || contextText.includes('llm') || contextText.includes('generative')) {
+        module = 'AI';
+      }
+
+      const customQuestionsSummary = qaParts.join(' • ');
+      const rawLeadId = idIdx !== -1 && cols[idIdx] ? cols[idIdx].replace(/^["']|["']$/g, '').replace(/^l:\s*/i, '') : '';
+
+      importedLeads.push({
+        id: rawLeadId ? `meta-${rawLeadId}` : `meta-import-${Date.now()}-${i}`,
+        name: rawName || 'Meta Prospect',
+        phone: rawPhone,
+        email: rawEmail,
+        module,
+        dateOfLead: rawDate,
+        campaignName: rawCamp.replace(/^["']|["']$/g, '').trim(),
+        adsetName: rawAdset.replace(/^["']|["']$/g, '').trim(),
+        adName: rawAd.replace(/^["']|["']$/g, '').trim(),
+        hrName: '', // Counselor is unassigned initially
+        status: 'Untouched', // Fresh untouched lead from Meta
+        callBackTime: '',
+        city: rawCity ? rawCity.replace(/^["']|["']$/g, '').trim() : undefined,
+        formName: rawForm ? rawForm.replace(/^["']|["']$/g, '').trim() : undefined,
+        platform: rawPlatform,
+        customQuestions: customQuestionsSummary,
+        notes: customQuestionsSummary ? `Meta Form Responses: ${customQuestionsSummary}` : 'Autofilled from Meta Ads Lead export.',
+        createdAt: new Date().toISOString(),
+        isProcessed: false,
+        callReports: [],
+      });
+    }
+
+    return importedLeads;
+  }
+}
