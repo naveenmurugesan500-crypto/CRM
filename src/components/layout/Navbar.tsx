@@ -9,7 +9,9 @@ import {
   PhoneCall, 
   Sparkles,
   Download,
-  Zap
+  Zap,
+  FileSpreadsheet,
+  RefreshCw
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -23,7 +25,10 @@ export const Navbar: React.FC = () => {
     resetAllData,
     exportCSV,
     setActiveTab,
-    metaConfig
+    metaConfig,
+    googleSheetConfig,
+    syncGoogleSheetLeads,
+    isSyncingSheet
   } = useCRM();
 
   const [showToast, setShowToast] = useState(false);
@@ -55,12 +60,23 @@ export const Navbar: React.FC = () => {
               Meta Leads CRM
             </span>
             <button
+              onClick={() => setActiveTab('google_sheets')}
+              title={googleSheetConfig.isConnected ? 'Google Sheets Live Connected' : 'Configure Google Sheets Live Sync'}
+              className="hidden sm:inline-flex items-center space-x-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
+            >
+              <FileSpreadsheet className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+              <span>Google Sheet</span>
+              {googleSheetConfig.isConnected && (
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              )}
+            </button>
+            <button
               onClick={() => setActiveTab('integration')}
               title="Open Meta Ads Integration"
-              className="hidden sm:inline-flex items-center space-x-1 rounded-full bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition"
+              className="hidden lg:inline-flex items-center space-x-1 rounded-full bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 text-[11px] font-bold text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition"
             >
               <Zap className="h-3 w-3 text-blue-500" />
-              <span>Meta Sync</span>
+              <span>Meta Webhook</span>
             </button>
           </div>
           <p className="hidden text-xs text-slate-400 sm:block">
@@ -93,6 +109,19 @@ export const Navbar: React.FC = () => {
 
       {/* Header Actions */}
       <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* Quick Google Sheets Sync Trigger */}
+        {googleSheetConfig.sheetUrl && (
+          <button
+            onClick={() => syncGoogleSheetLeads(true)}
+            disabled={isSyncingSheet}
+            title={googleSheetConfig.lastSyncAt ? `Google Sheet Sync (Last: ${new Date(googleSheetConfig.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : 'Sync Google Sheet'}
+            className="flex items-center space-x-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 transition cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isSyncingSheet ? 'Syncing...' : 'Sync Sheet'}</span>
+          </button>
+        )}
+
         {/* Export CSV button */}
         <button
           onClick={exportCSV}

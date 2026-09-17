@@ -14,7 +14,9 @@ import {
   RefreshCw,
   Copy,
   ExternalLink,
-  Zap
+  Zap,
+  FileSpreadsheet,
+  ArrowRight
 } from 'lucide-react';
 
 export const MetaIntegrationView: React.FC = () => {
@@ -23,7 +25,9 @@ export const MetaIntegrationView: React.FC = () => {
     updateMetaConfig, 
     simulateMetaLead, 
     importMetaLeads, 
-    stats 
+    stats,
+    setActiveTab,
+    googleSheetConfig
   } = useCRM();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +130,40 @@ export const MetaIntegrationView: React.FC = () => {
           {importStatus}
         </div>
       )}
+
+      {/* Google Sheets Live Sync Card / Shortcut */}
+      <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 shadow-sm dark:border-emerald-800/60 dark:from-emerald-950/40 dark:to-teal-950/30 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-start space-x-3.5">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-600/20 flex-shrink-0">
+            <FileSpreadsheet className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                Live Google Sheets Lead Sync
+              </h3>
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                googleSheetConfig.isConnected
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
+              }`}>
+                {googleSheetConfig.isConnected ? '● Connected' : 'Setup Required'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+              Have your Meta Lead Ads flowing into a Google Sheet? Connect it directly for real-time automatic lead ingestion into Untouched Leads.
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveTab('google_sheets')}
+          className="inline-flex items-center space-x-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition cursor-pointer self-start md:self-auto flex-shrink-0"
+        >
+          <span>Open Google Sheets Sync</span>
+          <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       {/* Live Status & Quick Test Banner */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

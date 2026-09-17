@@ -10,7 +10,8 @@ import {
   Sliders, 
   Zap, 
   Flame,
-  BarChart3
+  BarChart3,
+  FileSpreadsheet
 } from 'lucide-react';
 
 interface NavItem {
@@ -23,7 +24,7 @@ interface NavItem {
 }
 
 export const Sidebar: React.FC = () => {
-  const { activeTab, setActiveTab, stats, metaConfig, exportCSV, exportDatabase } = useCRM();
+  const { activeTab, setActiveTab, stats, metaConfig, googleSheetConfig, exportCSV, exportDatabase } = useCRM();
 
   const navItems: NavItem[] = [
     {
@@ -63,6 +64,12 @@ export const Sidebar: React.FC = () => {
       id: 'dashboard',
       label: 'Analytics Dashboard',
       icon: LayoutDashboard,
+    },
+    {
+      id: 'google_sheets',
+      label: 'Google Sheets Live',
+      icon: FileSpreadsheet,
+      dotColor: googleSheetConfig.isConnected ? 'bg-emerald-500' : 'bg-slate-400',
     },
     {
       id: 'integration',

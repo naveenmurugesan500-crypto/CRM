@@ -8,6 +8,7 @@ import { LeadTable } from './components/leads/LeadTable';
 import { CallsView } from './components/calls/CallsView';
 import { CallBackQueue } from './components/callbacks/CallBackQueue';
 import { MetaIntegrationView } from './components/integration/MetaIntegrationView';
+import { GoogleSheetsSyncView } from './components/integration/GoogleSheetsSyncView';
 import { MetaCampaignsView } from './components/campaigns/MetaCampaignsView';
 import { SettingsView } from './components/settings/SettingsView';
 import { CallReportModal } from './components/leads/CallReportModal';
@@ -20,7 +21,8 @@ import {
   Clock, 
   Sliders, 
   Zap,
-  BarChart3 
+  BarChart3,
+  FileSpreadsheet
 } from 'lucide-react';
 
 const CRMMainContent: React.FC = () => {
@@ -44,6 +46,7 @@ const CRMMainContent: React.FC = () => {
           {activeTab === 'campaigns' && <MetaCampaignsView />}
           {activeTab === 'calls' && <CallsView />}
           {activeTab === 'callbacks' && <CallBackQueue />}
+          {activeTab === 'google_sheets' && <GoogleSheetsSyncView />}
           {activeTab === 'integration' && <MetaIntegrationView />}
           {activeTab === 'settings' && <SettingsView />}
         </main>

@@ -18,7 +18,9 @@ import {
   X,
   Send,
   Layers,
-  Check
+  Check,
+  FileSpreadsheet,
+  RefreshCw
 } from 'lucide-react';
 import { 
   formatDate, 
@@ -36,7 +38,10 @@ export const UntouchedLeadsView: React.FC = () => {
     setIsLeadModalOpen,
     simulateMetaLead,
     setActiveTab,
-    stats
+    stats,
+    googleSheetConfig,
+    syncGoogleSheetLeads,
+    isSyncingSheet
   } = useCRM();
 
   const [filterModule, setFilterModule] = useState('all');
@@ -172,10 +177,26 @@ export const UntouchedLeadsView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              if (googleSheetConfig.sheetUrl) {
+                syncGoogleSheetLeads(true);
+              } else {
+                setActiveTab('google_sheets');
+              }
+            }}
+            disabled={isSyncingSheet}
+            className="flex items-center space-x-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
+            title={googleSheetConfig.sheetUrl ? 'Pull new leads immediately from Google Sheet' : 'Connect your Google Sheet'}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${isSyncingSheet ? 'animate-spin' : ''}`} />
+            <span>{isSyncingSheet ? 'Syncing Sheet...' : 'Sync Google Sheet'}</span>
+          </button>
+
           <button
             onClick={simulateMetaLead}
-            className="flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:from-amber-600 hover:to-orange-600 transition active:scale-95"
+            className="flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:from-amber-600 hover:to-orange-600 transition active:scale-95 cursor-pointer"
             title="Simulate a new inbound lead from Meta Instant Form"
           >
             <Zap className="h-3.5 w-3.5" />
@@ -184,7 +205,7 @@ export const UntouchedLeadsView: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('leads')}
-            className="flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 transition"
+            className="flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 transition cursor-pointer"
           >
             <span>All Leads ({stats.processedCount})</span>
             <ArrowRight className="h-3.5 w-3.5" />

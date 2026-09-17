@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { 
   MetaLead, 
   DropdownSettings, 
@@ -11,6 +11,7 @@ import {
   MetaCampaignInsight,
   MetaMarketingApiConfig,
   CRMSettings,
+  GoogleSheetConfig,
   NavigationTab
 } from '../types/crm';
 export type { NavigationTab };
@@ -18,13 +19,15 @@ export type { NavigationTab };
 import { 
   MetaStorageService, 
   DEFAULT_COLUMN_VISIBILITY, 
-  DEFAULT_META_CONFIG 
+  DEFAULT_META_CONFIG,
+  DEFAULT_GOOGLE_SHEET_CONFIG
 } from '../services/storage';
 import { 
   DEFAULT_MARKETING_CONFIG, 
   DEFAULT_CRM_SETTINGS, 
   MetaAdsService 
 } from '../services/metaAdsService';
+import { GoogleSheetsService } from '../services/googleSheetsService';
 
 interface CRMContextType {
   activeTab: NavigationTab;
@@ -48,6 +51,12 @@ interface CRMContextType {
   updateMetaConfig: (updates: Partial<MetaIntegrationConfig>) => void;
   simulateMetaLead: () => void;
   importMetaLeads: (newLeads: MetaLead[]) => void;
+
+  // Google Sheets Live Sync
+  googleSheetConfig: GoogleSheetConfig;
+  updateGoogleSheetConfig: (updates: Partial<GoogleSheetConfig>) => void;
+  syncGoogleSheetLeads: (force?: boolean) => Promise<{ success: boolean; count: number; message: string }>;
+  isSyncingSheet: boolean;
 
   // Meta Marketing & Campaigns Insights
   campaignInsights: MetaCampaignInsight[];
@@ -173,6 +182,101 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     MetaStorageService.saveCampaignInsights(campaignInsights);
   }, [campaignInsights]);
+
+  // Google Sheet Integration Config & Sync State
+  const [googleSheetConfig, setGoogleSheetConfig] = useState<GoogleSheetConfig>(() => MetaStorageService.getGoogleSheetConfig());
+  const [isSyncingSheet, setIsSyncingSheet] = useState(false);
+  const leadsRef = useRef(leads);
+  useEffect(() => {
+    leadsRef.current = leads;
+  }, [leads]);
+
+  useEffect(() => {
+    MetaStorageService.saveGoogleSheetConfig(googleSheetConfig);
+  }, [googleSheetConfig]);
+
+  const updateGoogleSheetConfig = (updates: Partial<GoogleSheetConfig>) => {
+    setGoogleSheetConfig(prev => ({ ...prev, ...updates }));
+  };
+
+  const syncGoogleSheetLeads = async (force: boolean = false): Promise<{ success: boolean; count: number; message: string }> => {
+    if (!googleSheetConfig.sheetUrl) {
+      return { success: false, count: 0, message: 'Please provide a valid Google Sheet URL.' };
+    }
+
+    setIsSyncingSheet(true);
+    setGoogleSheetConfig(prev => ({ ...prev, lastSyncStatus: 'syncing' }));
+
+    try {
+      const { leads: fetchedLeads, totalRows } = await GoogleSheetsService.fetchLatestLeads(googleSheetConfig);
+
+      // Deduplication based on cleaned phone digits, email, and ID
+      const cleanDigits = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
+      const currentLeads = leadsRef.current;
+      const existingPhones = new Set(currentLeads.map(l => cleanDigits(l.phone)).filter(Boolean));
+      const existingEmails = new Set(currentLeads.map(l => (l.email || '').toLowerCase().trim()).filter(Boolean));
+      const existingIds = new Set(currentLeads.map(l => l.id));
+
+      const newLeads = fetchedLeads.filter(fl => {
+        const ph = cleanDigits(fl.phone);
+        const em = (fl.email || '').toLowerCase().trim();
+
+        if (fl.id && existingIds.has(fl.id)) return false;
+        if (ph && existingPhones.has(ph)) return false;
+        if (em && existingEmails.has(em)) return false;
+
+        return true;
+      });
+
+      if (newLeads.length > 0) {
+        setLeads(prev => [...newLeads, ...prev]);
+      }
+
+      const syncTime = new Date().toISOString();
+      const successMessage = newLeads.length > 0
+        ? `Synced ${newLeads.length} new leads from Google Sheet! (Total sheet rows: ${totalRows})`
+        : `Connected to Google Sheet (${totalRows} rows). All leads are already synced.`;
+
+      setGoogleSheetConfig(prev => ({
+        ...prev,
+        isConnected: true,
+        lastSyncAt: syncTime,
+        lastSyncStatus: 'success',
+        lastSyncMessage: successMessage,
+        lastFetchedRows: totalRows,
+        newLeadsFound: newLeads.length,
+        totalSyncedCount: (prev.totalSyncedCount || 0) + newLeads.length,
+      }));
+
+      return { success: true, count: newLeads.length, message: successMessage };
+    } catch (err: any) {
+      const errMsg = err.message || 'Failed to sync with Google Sheet. Please check sheet permissions.';
+      setGoogleSheetConfig(prev => ({
+        ...prev,
+        lastSyncStatus: 'error',
+        lastSyncMessage: errMsg,
+      }));
+      return { success: false, count: 0, message: errMsg };
+    } finally {
+      setIsSyncingSheet(false);
+    }
+  };
+
+  // Auto-sync polling timer
+  useEffect(() => {
+    if (!googleSheetConfig.autoSync || !googleSheetConfig.isConnected || !googleSheetConfig.sheetUrl) {
+      return;
+    }
+
+    const intervalMinutes = Math.max(1, googleSheetConfig.syncInterval || 2);
+    const intervalMs = intervalMinutes * 60 * 1000;
+
+    const timer = setInterval(() => {
+      syncGoogleSheetLeads();
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [googleSheetConfig.autoSync, googleSheetConfig.isConnected, googleSheetConfig.sheetUrl, googleSheetConfig.syncInterval]);
 
   const updateMarketingConfig = (updates: Partial<MetaMarketingApiConfig>) => {
     setMarketingConfig(prev => ({ ...prev, ...updates }));
@@ -445,6 +549,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMarketingConfig(DEFAULT_MARKETING_CONFIG);
     setCrmSettings(DEFAULT_CRM_SETTINGS);
     setCampaignInsights(MetaStorageService.getCampaignInsights());
+    setGoogleSheetConfig(DEFAULT_GOOGLE_SHEET_CONFIG);
   };
 
   const exportDatabase = () => {
@@ -482,6 +587,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setMarketingConfig(MetaStorageService.getMarketingConfig());
       setCrmSettings(MetaStorageService.getCrmSettings());
       setCampaignInsights(MetaStorageService.getCampaignInsights());
+      setGoogleSheetConfig(MetaStorageService.getGoogleSheetConfig());
       return true;
     }
     return false;
@@ -506,6 +612,10 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateMetaConfig,
         simulateMetaLead,
         importMetaLeads,
+        googleSheetConfig,
+        updateGoogleSheetConfig,
+        syncGoogleSheetLeads,
+        isSyncingSheet,
         campaignInsights,
         marketingConfig,
         updateMarketingConfig,

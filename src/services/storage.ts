@@ -7,7 +7,8 @@ import {
   MetaIntegrationConfig,
   MetaCampaignInsight,
   MetaMarketingApiConfig,
-  CRMSettings
+  CRMSettings,
+  GoogleSheetConfig
 } from '../types/crm';
 import { INITIAL_LEADS, DEFAULT_DROPDOWN_SETTINGS } from './mockData';
 import { DEFAULT_MARKETING_CONFIG, DEFAULT_CRM_SETTINGS, INITIAL_CAMPAIGN_INSIGHTS } from './metaAdsService';
@@ -21,6 +22,7 @@ const STORAGE_KEYS = {
   MARKETING_CONFIG: 'nexus_meta_marketing_config_v2',
   CRM_SETTINGS: 'nexus_crm_settings_v2',
   CAMPAIGN_INSIGHTS: 'nexus_campaign_insights_v2',
+  GOOGLE_SHEET: 'nexus_google_sheet_config_v2',
 };
 
 export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
@@ -45,6 +47,20 @@ export const DEFAULT_META_CONFIG: MetaIntegrationConfig = {
   webhookEndpoint: 'https://api.yourdomain.com/webhooks/meta-leadgen',
   isConnected: true,
   lastSyncAt: new Date().toISOString(),
+};
+
+export const DEFAULT_GOOGLE_SHEET_CONFIG: GoogleSheetConfig = {
+  sheetUrl: '',
+  sheetId: '',
+  gid: '0',
+  sheetName: '',
+  autoSync: true,
+  syncInterval: 2,
+  isConnected: false,
+  lastSyncStatus: 'idle',
+  totalSyncedCount: 0,
+  newLeadsFound: 0,
+  lastFetchedRows: 0,
 };
 
 function getFromStorage<T>(key: string, fallback: T): T {
@@ -147,6 +163,14 @@ export class MetaStorageService {
     saveToStorage(STORAGE_KEYS.CAMPAIGN_INSIGHTS, insights);
   }
 
+  static getGoogleSheetConfig(): GoogleSheetConfig {
+    return getFromStorage<GoogleSheetConfig>(STORAGE_KEYS.GOOGLE_SHEET, DEFAULT_GOOGLE_SHEET_CONFIG);
+  }
+
+  static saveGoogleSheetConfig(config: GoogleSheetConfig): void {
+    saveToStorage(STORAGE_KEYS.GOOGLE_SHEET, config);
+  }
+
   static resetToDefault(): void {
     localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(INITIAL_LEADS));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_DROPDOWN_SETTINGS));
@@ -156,6 +180,7 @@ export class MetaStorageService {
     localStorage.setItem(STORAGE_KEYS.MARKETING_CONFIG, JSON.stringify(DEFAULT_MARKETING_CONFIG));
     localStorage.setItem(STORAGE_KEYS.CRM_SETTINGS, JSON.stringify(DEFAULT_CRM_SETTINGS));
     localStorage.setItem(STORAGE_KEYS.CAMPAIGN_INSIGHTS, JSON.stringify(INITIAL_CAMPAIGN_INSIGHTS));
+    localStorage.setItem(STORAGE_KEYS.GOOGLE_SHEET, JSON.stringify(DEFAULT_GOOGLE_SHEET_CONFIG));
   }
 
   static calculateStats(leads: MetaLead[]): MetaStats {
@@ -198,6 +223,7 @@ export class MetaStorageService {
       marketingConfig: this.getMarketingConfig(),
       crmSettings: this.getCrmSettings(),
       campaignInsights: this.getCampaignInsights(),
+      googleSheetConfig: this.getGoogleSheetConfig(),
       columnVisibility: this.getColumnVisibility(),
     };
     return JSON.stringify(exportData, null, 2);
@@ -212,6 +238,7 @@ export class MetaStorageService {
       if (parsed.marketingConfig) this.saveMarketingConfig(parsed.marketingConfig);
       if (parsed.crmSettings) this.saveCrmSettings(parsed.crmSettings);
       if (Array.isArray(parsed.campaignInsights)) this.saveCampaignInsights(parsed.campaignInsights);
+      if (parsed.googleSheetConfig) this.saveGoogleSheetConfig(parsed.googleSheetConfig);
       return true;
     } catch (e) {
       console.error('Import failed:', e);

@@ -24,10 +24,12 @@ import {
   Copy,
   Check,
   BookOpen,
-  Info
+  Info,
+  FileSpreadsheet
 } from 'lucide-react';
+import { GoogleSheetsSyncView } from '../integration/GoogleSheetsSyncView';
 
-type SettingsTab = 'meta_api' | 'guide' | 'dropdowns' | 'communication' | 'backup';
+type SettingsTab = 'google_sheets' | 'meta_api' | 'guide' | 'dropdowns' | 'communication' | 'backup';
 
 export const SettingsView: React.FC = () => {
   const { 
@@ -191,6 +193,18 @@ export const SettingsView: React.FC = () => {
       {/* Tabs Navigation */}
       <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
+          onClick={() => setActiveTab('google_sheets')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all cursor-pointer ${
+            activeTab === 'google_sheets'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          <FileSpreadsheet className="h-4 w-4" />
+          Google Sheets Live Sync
+        </button>
+
+        <button
           onClick={() => setActiveTab('meta_api')}
           className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all cursor-pointer ${
             activeTab === 'meta_api'
@@ -250,6 +264,11 @@ export const SettingsView: React.FC = () => {
           Backup & Storage
         </button>
       </div>
+
+      {/* Tab 0: Google Sheets Live Sync */}
+      {activeTab === 'google_sheets' && (
+        <GoogleSheetsSyncView />
+      )}
 
       {/* Tab 1: Meta Marketing API Integration */}
       {activeTab === 'meta_api' && (

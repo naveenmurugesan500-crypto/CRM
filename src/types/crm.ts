@@ -131,6 +131,22 @@ export interface CRMSettings {
 
 export type TimeFilterPreset = 'today' | 'week' | 'month' | 'year' | 'custom' | 'all';
 
+export interface GoogleSheetConfig {
+  sheetUrl: string;
+  sheetId?: string;
+  gid?: string;
+  sheetName?: string;
+  autoSync: boolean;
+  syncInterval: number; // in minutes, e.g. 1, 2, 5, 15
+  isConnected: boolean;
+  lastSyncAt?: string;
+  lastSyncStatus?: 'idle' | 'syncing' | 'success' | 'error';
+  lastSyncMessage?: string;
+  totalSyncedCount?: number;
+  newLeadsFound?: number;
+  lastFetchedRows?: number;
+}
+
 export type NavigationTab = 
   | 'untouched'
   | 'leads'
@@ -138,5 +154,6 @@ export type NavigationTab =
   | 'calls'
   | 'callbacks'
   | 'dashboard'
+  | 'google_sheets'
   | 'integration'
   | 'settings';
