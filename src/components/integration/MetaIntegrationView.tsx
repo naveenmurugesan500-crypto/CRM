@@ -23,7 +23,6 @@ export const MetaIntegrationView: React.FC = () => {
   const { 
     metaConfig, 
     updateMetaConfig, 
-    simulateMetaLead, 
     importMetaLeads, 
     stats,
     setActiveTab,
@@ -187,14 +186,6 @@ export const MetaIntegrationView: React.FC = () => {
           </div>
         </div>
 
-        {/* 1-Click Simulator Button */}
-        <button
-          onClick={simulateMetaLead}
-          className="flex items-center justify-center space-x-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 hover:from-blue-700 hover:to-indigo-700 transition active:scale-95 self-start md:self-auto"
-        >
-          <Zap className="h-4 w-4" />
-          <span>Simulate Incoming Meta Lead</span>
-        </button>
       </div>
 
       {/* Two Column Section: CSV Importer & Webhook Configuration */}

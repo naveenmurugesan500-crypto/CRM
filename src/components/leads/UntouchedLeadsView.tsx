@@ -36,7 +36,6 @@ export const UntouchedLeadsView: React.FC = () => {
     processLead,
     setLeadToEdit, 
     setIsLeadModalOpen,
-    simulateMetaLead,
     setActiveTab,
     stats,
     googleSheetConfig,

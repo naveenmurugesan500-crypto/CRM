@@ -54,7 +54,6 @@ interface CRMContextType {
   // Meta Integration Config
   metaConfig: MetaIntegrationConfig;
   updateMetaConfig: (updates: Partial<MetaIntegrationConfig>) => void;
-  simulateMetaLead: () => void;
   importMetaLeads: (newLeads: MetaLead[]) => void;
 
   // Google Sheets Live Sync (Single & Multi-Source)
@@ -547,41 +546,6 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setMetaConfig(prev => ({ ...prev, lastSyncAt: new Date().toISOString() }));
   };
 
-  // Simulate incoming Meta webhook lead (real-time Facebook/Instagram lead)
-  const simulateMetaLead = () => {
-    const randomModules = dropdownSettings.modules;
-    const pickedModule = randomModules[Math.floor(Math.random() * randomModules.length)] || 'DATA SCIENCE';
-    const sampleNames = ['Aditya Rao', 'Meera Kapoor', 'Tanmay Sen', 'Deepak Nair', 'Riya Sengupta', 'Gaurav Joshi'];
-    const pickedName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-    const randomPhone = `+91 ${Math.floor(90000 + Math.random() * 9999)} ${Math.floor(10000 + Math.random() * 89999)}`;
-    const randomAd = ['Ad_Reel_LiveDemo_V3', 'Ad_Video_CareerSalaryHike_V1', 'Ad_Carousel_CloudMastery'][Math.floor(Math.random() * 3)];
-    const randomCampaign = ['Meta_DataScience_Sept26', 'Meta_Cloud_AWS_Leads_Sept', 'Meta_GenerativeAI_LeadGen'][Math.floor(Math.random() * 3)];
-    const randomHr = dropdownSettings.hrNames[Math.floor(Math.random() * dropdownSettings.hrNames.length)] || 'Priya Sharma';
-
-    const incomingLead: MetaLead = {
-      id: `meta-live-${Date.now()}`,
-      name: pickedName,
-      phone: randomPhone,
-      email: `${pickedName.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
-      module: pickedModule,
-      dateOfLead: new Date().toISOString().slice(0, 10),
-      timeOfLead: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-      campaignName: randomCampaign,
-      adsetName: 'Audience_Tech_Graduates',
-      adName: randomAd,
-      hrName: '', // Counselor is unassigned initially
-      status: 'Untouched', // Fresh untouched lead from Meta Ads
-      callBackTime: '',
-      notes: 'Captured live via Meta Instant Form Webhook event (leadgen). Awaiting counselor assignment.',
-      createdAt: new Date().toISOString(),
-      isProcessed: false,
-      callReports: [],
-    };
-
-    setLeads(prev => [incomingLead, ...prev]);
-    setMetaConfig(prev => ({ ...prev, lastSyncAt: new Date().toISOString() }));
-  };
-
   // Lead operations
   const addLead = (data: Omit<MetaLead, 'id' | 'createdAt' | 'callReports'>) => {
     const newLead: MetaLead = {
@@ -836,7 +800,6 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         resetColumns,
         metaConfig,
         updateMetaConfig,
-        simulateMetaLead,
         importMetaLeads,
         googleSheetConfig,
         updateGoogleSheetConfig,

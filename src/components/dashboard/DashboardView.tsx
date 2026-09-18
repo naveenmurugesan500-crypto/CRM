@@ -41,8 +41,7 @@ export const DashboardView: React.FC = () => {
     setActiveTab, 
     setLeadToLogCall, 
     setLeadToEdit, 
-    setIsLeadModalOpen, 
-    simulateMetaLead 
+    setIsLeadModalOpen
   } = useCRM();
 
   const [timePreset, setTimePreset] = useState<TimeFilterPreset>('all');
