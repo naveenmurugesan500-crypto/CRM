@@ -41,7 +41,10 @@ export const UntouchedLeadsView: React.FC = () => {
     stats,
     googleSheetConfig,
     syncGoogleSheetLeads,
-    isSyncingSheet
+    isSyncingSheet,
+    multiSheetConfig,
+    syncAllSheetSources,
+    isSyncingAllSheets
   } = useCRM();
 
   const [filterModule, setFilterModule] = useState('all');
@@ -180,18 +183,26 @@ export const UntouchedLeadsView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => {
-              if (googleSheetConfig.sheetUrl) {
+              if (multiSheetConfig?.sources?.length > 0) {
+                syncAllSheetSources();
+              } else if (googleSheetConfig.sheetUrl) {
                 syncGoogleSheetLeads(true);
               } else {
                 setActiveTab('google_sheets');
               }
             }}
-            disabled={isSyncingSheet}
+            disabled={isSyncingSheet || isSyncingAllSheets}
             className="flex items-center space-x-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
-            title={googleSheetConfig.sheetUrl ? 'Pull new leads immediately from Google Sheet' : 'Connect your Google Sheet'}
+            title="Pull new leads immediately from connected Google Sheets"
           >
-            <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${isSyncingSheet ? 'animate-spin' : ''}`} />
-            <span>{isSyncingSheet ? 'Syncing Sheet...' : 'Sync Google Sheet'}</span>
+            <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${(isSyncingSheet || isSyncingAllSheets) ? 'animate-spin' : ''}`} />
+            <span>
+              {(isSyncingSheet || isSyncingAllSheets) 
+                ? 'Syncing Sheets...' 
+                : (multiSheetConfig?.sources?.length > 1) 
+                  ? `Sync All (${multiSheetConfig.sources.length}) Sheets` 
+                  : 'Sync Google Sheets'}
+            </span>
           </button>
 
           <button

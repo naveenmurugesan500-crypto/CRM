@@ -1,4 +1,4 @@
-import { MetaLead, GoogleSheetConfig } from '../types/crm';
+import { MetaLead, GoogleSheetConfig, GoogleSheetSource, MultiSheetConfig } from '../types/crm';
 import { MetaStorageService } from './storage';
 
 export interface SheetParseResult {
@@ -29,6 +29,46 @@ export const DEFAULT_GOOGLE_SHEET_CONFIG: GoogleSheetConfig = {
   totalSyncedCount: 0,
   newLeadsFound: 0,
   lastFetchedRows: 0,
+};
+
+export const DEFAULT_MULTI_SHEET_CONFIG: MultiSheetConfig = {
+  sources: [
+    {
+      id: 'sheet_1',
+      name: 'SAP Instant Form Leads (Account 1)',
+      sheetUrl: '',
+      adAccountName: 'Nexus Tech Ed - Primary Growth',
+      targetModule: 'SAP',
+      enabled: true,
+      lastSyncStatus: 'idle',
+      totalSyncedCount: 0,
+      lastFetchedRows: 0,
+    },
+    {
+      id: 'sheet_2',
+      name: 'AWS & Cloud Form Leads (Account 1)',
+      sheetUrl: '',
+      adAccountName: 'Nexus Tech Ed - Primary Growth',
+      targetModule: 'AWS',
+      enabled: true,
+      lastSyncStatus: 'idle',
+      totalSyncedCount: 0,
+      lastFetchedRows: 0,
+    },
+    {
+      id: 'sheet_3',
+      name: 'Data Science & AI Leads (Account 2)',
+      sheetUrl: '',
+      adAccountName: 'Nexus Tech Ed - Scale & AI',
+      targetModule: 'DATA SCIENCE',
+      enabled: true,
+      lastSyncStatus: 'idle',
+      totalSyncedCount: 0,
+      lastFetchedRows: 0,
+    }
+  ],
+  autoSync: true,
+  syncInterval: 2,
 };
 
 export class GoogleSheetsService {
@@ -218,6 +258,81 @@ export class GoogleSheetsService {
     return {
       leads: parsedLeads,
       totalRows: parsedLeads.length,
+    };
+  }
+
+  /**
+   * Fetches leads from a specific configured Google Sheet Source
+   * Stamping the lead with target module and ad account attribution
+   */
+  static async fetchLeadsFromSource(source: GoogleSheetSource): Promise<{ leads: MetaLead[]; totalRows: number }> {
+    if (!source.sheetUrl || !source.enabled) {
+      return { leads: [], totalRows: 0 };
+    }
+
+    const rawCsv = await this.fetchSheetCsv(source.sheetUrl, source.gid, source.sheetName);
+    const parsed = MetaStorageService.parseMetaAdsCSV(rawCsv, source.targetModule || 'SAP');
+
+    // Tag each lead with source name, target module and ad account attribution
+    const tagged = parsed.map(l => ({
+      ...l,
+      module: (source.targetModule && source.targetModule !== 'Auto-Detect') ? source.targetModule : l.module,
+      notes: `${l.notes || ''} [Source: ${source.name}${source.adAccountName ? ` • ${source.adAccountName}` : ''}]`.trim(),
+    }));
+
+    return {
+      leads: tagged,
+      totalRows: tagged.length,
+    };
+  }
+
+  /**
+   * Fetches leads in parallel from ALL enabled Google Sheet sources
+   */
+  static async fetchAllSources(sources: GoogleSheetSource[]): Promise<{
+    combinedLeads: MetaLead[];
+    sourceResults: Record<string, { success: boolean; rows: number; message: string }>;
+  }> {
+    const enabled = sources.filter(s => s.enabled && s.sheetUrl.trim());
+    if (enabled.length === 0) {
+      return { combinedLeads: [], sourceResults: {} };
+    }
+
+    const results = await Promise.allSettled(
+      enabled.map(async (source) => {
+        const res = await this.fetchLeadsFromSource(source);
+        return {
+          sourceId: source.id,
+          leads: res.leads,
+          rows: res.totalRows,
+        };
+      })
+    );
+
+    const combinedLeads: MetaLead[] = [];
+    const sourceResults: Record<string, { success: boolean; rows: number; message: string }> = {};
+
+    results.forEach((r, idx) => {
+      const source = enabled[idx];
+      if (r.status === 'fulfilled') {
+        combinedLeads.push(...r.value.leads);
+        sourceResults[source.id] = {
+          success: true,
+          rows: r.value.rows,
+          message: `Synced ${r.value.rows} rows successfully.`,
+        };
+      } else {
+        sourceResults[source.id] = {
+          success: false,
+          rows: 0,
+          message: r.reason?.message || 'Failed to fetch spreadsheet.',
+        };
+      }
+    });
+
+    return {
+      combinedLeads,
+      sourceResults,
     };
   }
 

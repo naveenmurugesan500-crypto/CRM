@@ -106,6 +106,35 @@ export interface MetaCampaignInsight {
   moduleHint?: string;
   adsetsCount?: number;
   adsCount?: number;
+  adAccountId?: string;
+  adAccountName?: string;
+}
+
+export interface MetaAdAccountConfig {
+  id: string; // e.g. 'acc_1'
+  adAccountId: string; // e.g. 'act_120248848255150533'
+  accountName: string; // e.g. 'Primary Growth Account'
+  currency: string; // 'INR', 'USD'
+  isEnabled: boolean;
+  dailyBudget?: number;
+  accessToken?: string;
+}
+
+export interface AdAccountSummary {
+  adAccountId: string;
+  accountName: string;
+  currency: string;
+  totalSpend: number;
+  totalBudget: number;
+  totalImpressions: number;
+  totalReach: number;
+  totalClicks: number;
+  totalLeads: number;
+  cpl: number;
+  cpm: number;
+  ctr: number;
+  campaignsCount: number;
+  activeCampaignsCount: number;
 }
 
 export interface MetaMarketingApiConfig {
@@ -120,6 +149,8 @@ export interface MetaMarketingApiConfig {
   lastSyncAt?: string;
   tokenPermissions?: string[];
   accountName?: string;
+  adAccounts?: MetaAdAccountConfig[];
+  selectedAccountId?: string; // 'ALL' or specific adAccountId
 }
 
 export interface CRMSettings {
@@ -130,6 +161,30 @@ export interface CRMSettings {
 }
 
 export type TimeFilterPreset = 'today' | 'week' | 'month' | 'year' | 'custom' | 'all';
+
+export interface GoogleSheetSource {
+  id: string;
+  name: string; // e.g. "SAP Lead Form - Account 1"
+  sheetUrl: string;
+  sheetId?: string;
+  gid?: string;
+  sheetName?: string;
+  adAccountName?: string; // e.g. "Primary Growth Account"
+  targetModule?: string; // e.g. "SAP", "AWS", "DATA SCIENCE", "AI"
+  enabled: boolean;
+  lastSyncAt?: string;
+  lastSyncStatus?: 'idle' | 'syncing' | 'success' | 'error';
+  lastSyncMessage?: string;
+  totalSyncedCount?: number;
+  lastFetchedRows?: number;
+}
+
+export interface MultiSheetConfig {
+  sources: GoogleSheetSource[];
+  autoSync: boolean;
+  syncInterval: number; // in minutes
+  lastSyncAllAt?: string;
+}
 
 export interface GoogleSheetConfig {
   sheetUrl: string;

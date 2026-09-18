@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { 
   MetaLead, 
   DropdownSettings, 
@@ -12,6 +12,10 @@ import {
   MetaMarketingApiConfig,
   CRMSettings,
   GoogleSheetConfig,
+  GoogleSheetSource,
+  MultiSheetConfig,
+  MetaAdAccountConfig,
+  AdAccountSummary,
   NavigationTab
 } from '../types/crm';
 export type { NavigationTab };
@@ -25,9 +29,10 @@ import {
 import { 
   DEFAULT_MARKETING_CONFIG, 
   DEFAULT_CRM_SETTINGS, 
+  DEFAULT_AD_ACCOUNTS,
   MetaAdsService 
 } from '../services/metaAdsService';
-import { GoogleSheetsService } from '../services/googleSheetsService';
+import { GoogleSheetsService, DEFAULT_MULTI_SHEET_CONFIG } from '../services/googleSheetsService';
 
 interface CRMContextType {
   activeTab: NavigationTab;
@@ -52,11 +57,20 @@ interface CRMContextType {
   simulateMetaLead: () => void;
   importMetaLeads: (newLeads: MetaLead[]) => void;
 
-  // Google Sheets Live Sync
+  // Google Sheets Live Sync (Single & Multi-Source)
   googleSheetConfig: GoogleSheetConfig;
   updateGoogleSheetConfig: (updates: Partial<GoogleSheetConfig>) => void;
   syncGoogleSheetLeads: (force?: boolean) => Promise<{ success: boolean; count: number; message: string }>;
   isSyncingSheet: boolean;
+
+  multiSheetConfig: MultiSheetConfig;
+  updateMultiSheetConfig: (updates: Partial<MultiSheetConfig>) => void;
+  addSheetSource: (source: Omit<GoogleSheetSource, 'id' | 'lastSyncStatus' | 'totalSyncedCount' | 'lastFetchedRows'>) => void;
+  updateSheetSource: (id: string, updates: Partial<GoogleSheetSource>) => void;
+  deleteSheetSource: (id: string) => void;
+  syncAllSheetSources: (force?: boolean) => Promise<{ success: boolean; totalNewLeads: number; message: string }>;
+  syncSingleSheetSource: (sourceId: string) => Promise<{ success: boolean; newLeads: number; message: string }>;
+  isSyncingAllSheets: boolean;
 
   // Meta Marketing & Campaigns Insights
   campaignInsights: MetaCampaignInsight[];
@@ -66,6 +80,15 @@ interface CRMContextType {
   updateCrmSettings: (updates: Partial<CRMSettings>) => void;
   syncCampaignInsights: () => Promise<boolean>;
   isSyncingCampaigns: boolean;
+
+  // Multi-Ad Account Selection & Summaries
+  adAccounts: MetaAdAccountConfig[];
+  selectedAdAccountId: string;
+  setSelectedAdAccountId: (id: string) => void;
+  addAdAccount: (account: Omit<MetaAdAccountConfig, 'id'>) => void;
+  updateAdAccount: (id: string, updates: Partial<MetaAdAccountConfig>) => void;
+  deleteAdAccount: (id: string) => void;
+  adAccountSummaries: AdAccountSummary[];
 
   // Modals & Selection
   selectedLead: MetaLead | null;
@@ -278,6 +301,206 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => clearInterval(timer);
   }, [googleSheetConfig.autoSync, googleSheetConfig.isConnected, googleSheetConfig.sheetUrl, googleSheetConfig.syncInterval]);
 
+  // Multi-Google Sheets Integration Config & State
+  const [multiSheetConfig, setMultiSheetConfig] = useState<MultiSheetConfig>(() => MetaStorageService.getMultiSheetConfig());
+  const [isSyncingAllSheets, setIsSyncingAllSheets] = useState(false);
+
+  useEffect(() => {
+    MetaStorageService.saveMultiSheetConfig(multiSheetConfig);
+  }, [multiSheetConfig]);
+
+  const updateMultiSheetConfig = (updates: Partial<MultiSheetConfig>) => {
+    setMultiSheetConfig(prev => ({ ...prev, ...updates }));
+  };
+
+  const addSheetSource = (source: Omit<GoogleSheetSource, 'id' | 'lastSyncStatus' | 'totalSyncedCount' | 'lastFetchedRows'>) => {
+    const newSource: GoogleSheetSource = {
+      ...source,
+      id: `sheet_${Date.now()}`,
+      lastSyncStatus: 'idle',
+      totalSyncedCount: 0,
+      lastFetchedRows: 0,
+    };
+    setMultiSheetConfig(prev => ({
+      ...prev,
+      sources: [...prev.sources, newSource],
+    }));
+  };
+
+  const updateSheetSource = (id: string, updates: Partial<GoogleSheetSource>) => {
+    setMultiSheetConfig(prev => ({
+      ...prev,
+      sources: prev.sources.map(s => s.id === id ? { ...s, ...updates } : s),
+    }));
+  };
+
+  const deleteSheetSource = (id: string) => {
+    setMultiSheetConfig(prev => ({
+      ...prev,
+      sources: prev.sources.filter(s => s.id !== id),
+    }));
+  };
+
+  const syncAllSheetSources = async (force: boolean = false): Promise<{ success: boolean; totalNewLeads: number; message: string }> => {
+    setIsSyncingAllSheets(true);
+    try {
+      const { combinedLeads, sourceResults } = await GoogleSheetsService.fetchAllSources(multiSheetConfig.sources);
+
+      // Deduplication based on cleaned phone digits, email, and ID
+      const cleanDigits = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
+      const currentLeads = leadsRef.current;
+      const existingPhones = new Set(currentLeads.map(l => cleanDigits(l.phone)).filter(Boolean));
+      const existingEmails = new Set(currentLeads.map(l => (l.email || '').toLowerCase().trim()).filter(Boolean));
+      const existingIds = new Set(currentLeads.map(l => l.id));
+
+      const newLeads = combinedLeads.filter(fl => {
+        const ph = cleanDigits(fl.phone);
+        const em = (fl.email || '').toLowerCase().trim();
+
+        if (fl.id && existingIds.has(fl.id)) return false;
+        if (ph && existingPhones.has(ph)) return false;
+        if (em && existingEmails.has(em)) return false;
+
+        return true;
+      });
+
+      if (newLeads.length > 0) {
+        setLeads(prev => [...newLeads, ...prev]);
+      }
+
+      const now = new Date().toISOString();
+      setMultiSheetConfig(prev => ({
+        ...prev,
+        lastSyncAllAt: now,
+        sources: prev.sources.map(s => {
+          const res = sourceResults[s.id];
+          if (!res) return s;
+          return {
+            ...s,
+            lastSyncAt: now,
+            lastSyncStatus: res.success ? 'success' : 'error',
+            lastSyncMessage: res.message,
+            lastFetchedRows: res.rows,
+            totalSyncedCount: res.success ? (s.totalSyncedCount || 0) + (res.rows > 0 ? 1 : 0) : s.totalSyncedCount,
+          };
+        }),
+      }));
+
+      const msg = newLeads.length > 0
+        ? `Synced ${newLeads.length} new untouched leads across ${Object.keys(sourceResults).length} Google Sheets!`
+        : `All ${Object.keys(sourceResults).length} Google Sheets checked. All leads are already in the CRM.`;
+
+      return { success: true, totalNewLeads: newLeads.length, message: msg };
+    } catch (err: any) {
+      return { success: false, totalNewLeads: 0, message: err.message || 'Failed to sync Google Sheets.' };
+    } finally {
+      setIsSyncingAllSheets(false);
+    }
+  };
+
+  const syncSingleSheetSource = async (sourceId: string): Promise<{ success: boolean; newLeads: number; message: string }> => {
+    const source = multiSheetConfig.sources.find(s => s.id === sourceId);
+    if (!source || !source.sheetUrl) {
+      return { success: false, newLeads: 0, message: 'Source not found or missing URL.' };
+    }
+
+    updateSheetSource(sourceId, { lastSyncStatus: 'syncing' });
+    try {
+      const { leads: fetchedLeads, totalRows } = await GoogleSheetsService.fetchLeadsFromSource(source);
+
+      const cleanDigits = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
+      const currentLeads = leadsRef.current;
+      const existingPhones = new Set(currentLeads.map(l => cleanDigits(l.phone)).filter(Boolean));
+      const existingEmails = new Set(currentLeads.map(l => (l.email || '').toLowerCase().trim()).filter(Boolean));
+      const existingIds = new Set(currentLeads.map(l => l.id));
+
+      const newLeads = fetchedLeads.filter(fl => {
+        const ph = cleanDigits(fl.phone);
+        const em = (fl.email || '').toLowerCase().trim();
+
+        if (fl.id && existingIds.has(fl.id)) return false;
+        if (ph && existingPhones.has(ph)) return false;
+        if (em && existingEmails.has(em)) return false;
+
+        return true;
+      });
+
+      if (newLeads.length > 0) {
+        setLeads(prev => [...newLeads, ...prev]);
+      }
+
+      const now = new Date().toISOString();
+      updateSheetSource(sourceId, {
+        lastSyncAt: now,
+        lastSyncStatus: 'success',
+        lastSyncMessage: `Synced ${newLeads.length} new leads (${totalRows} total rows in sheet).`,
+        lastFetchedRows: totalRows,
+        totalSyncedCount: (source.totalSyncedCount || 0) + newLeads.length,
+      });
+
+      return {
+        success: true,
+        newLeads: newLeads.length,
+        message: `Successfully synced ${newLeads.length} new leads from "${source.name}".`,
+      };
+    } catch (err: any) {
+      updateSheetSource(sourceId, {
+        lastSyncStatus: 'error',
+        lastSyncMessage: err.message || 'Sync failed.',
+      });
+      return { success: false, newLeads: 0, message: err.message || 'Sync failed.' };
+    }
+  };
+
+  // Multi-Sheet Auto-Sync Polling Timer
+  useEffect(() => {
+    if (!multiSheetConfig.autoSync || multiSheetConfig.sources.length === 0) return;
+    const intervalMs = Math.max(1, multiSheetConfig.syncInterval || 2) * 60 * 1000;
+    const timer = setInterval(() => {
+      syncAllSheetSources();
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [multiSheetConfig.autoSync, multiSheetConfig.syncInterval, multiSheetConfig.sources]);
+
+  // Multi-Ad Account Configuration & Summaries
+  const [selectedAdAccountId, setSelectedAdAccountId] = useState<string>(() => marketingConfig.selectedAccountId || 'ALL');
+
+  const adAccounts = marketingConfig.adAccounts && marketingConfig.adAccounts.length > 0
+    ? marketingConfig.adAccounts
+    : DEFAULT_AD_ACCOUNTS;
+
+  const addAdAccount = (account: Omit<MetaAdAccountConfig, 'id'>) => {
+    const newAcc: MetaAdAccountConfig = {
+      ...account,
+      id: `acc_${Date.now()}`,
+    };
+    const updated = [...(marketingConfig.adAccounts || DEFAULT_AD_ACCOUNTS), newAcc];
+    setMarketingConfig(prev => ({
+      ...prev,
+      adAccounts: updated,
+    }));
+  };
+
+  const updateAdAccount = (id: string, updates: Partial<MetaAdAccountConfig>) => {
+    const updated = (marketingConfig.adAccounts || DEFAULT_AD_ACCOUNTS).map(a => a.id === id ? { ...a, ...updates } : a);
+    setMarketingConfig(prev => ({
+      ...prev,
+      adAccounts: updated,
+    }));
+  };
+
+  const deleteAdAccount = (id: string) => {
+    const updated = (marketingConfig.adAccounts || DEFAULT_AD_ACCOUNTS).filter(a => a.id !== id);
+    setMarketingConfig(prev => ({
+      ...prev,
+      adAccounts: updated,
+    }));
+  };
+
+  const adAccountSummaries = useMemo(() => {
+    return MetaAdsService.calculateAccountSummaries(campaignInsights, adAccounts);
+  }, [campaignInsights, adAccounts]);
+
   const updateMarketingConfig = (updates: Partial<MetaMarketingApiConfig>) => {
     setMarketingConfig(prev => ({ ...prev, ...updates }));
   };
@@ -289,7 +512,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const syncCampaignInsights = async (): Promise<boolean> => {
     setIsSyncingCampaigns(true);
     try {
-      const liveData = await MetaAdsService.fetchCampaignInsights(marketingConfig);
+      const liveData = await MetaAdsService.fetchCampaignInsights(marketingConfig, 'last_7d', leadsRef.current);
       setCampaignInsights(liveData);
       setMarketingConfig(prev => ({ ...prev, lastSyncAt: new Date().toISOString() }));
       return true;
@@ -550,6 +773,8 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCrmSettings(DEFAULT_CRM_SETTINGS);
     setCampaignInsights(MetaStorageService.getCampaignInsights());
     setGoogleSheetConfig(DEFAULT_GOOGLE_SHEET_CONFIG);
+    setMultiSheetConfig(DEFAULT_MULTI_SHEET_CONFIG);
+    setSelectedAdAccountId('ALL');
   };
 
   const exportDatabase = () => {
@@ -588,6 +813,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCrmSettings(MetaStorageService.getCrmSettings());
       setCampaignInsights(MetaStorageService.getCampaignInsights());
       setGoogleSheetConfig(MetaStorageService.getGoogleSheetConfig());
+      setMultiSheetConfig(MetaStorageService.getMultiSheetConfig());
       return true;
     }
     return false;
@@ -616,6 +842,21 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateGoogleSheetConfig,
         syncGoogleSheetLeads,
         isSyncingSheet,
+        multiSheetConfig,
+        updateMultiSheetConfig,
+        addSheetSource,
+        updateSheetSource,
+        deleteSheetSource,
+        syncAllSheetSources,
+        syncSingleSheetSource,
+        isSyncingAllSheets,
+        adAccounts,
+        selectedAdAccountId,
+        setSelectedAdAccountId,
+        addAdAccount,
+        updateAdAccount,
+        deleteAdAccount,
+        adAccountSummaries,
         campaignInsights,
         marketingConfig,
         updateMarketingConfig,

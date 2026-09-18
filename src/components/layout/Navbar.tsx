@@ -28,7 +28,10 @@ export const Navbar: React.FC = () => {
     metaConfig,
     googleSheetConfig,
     syncGoogleSheetLeads,
-    isSyncingSheet
+    isSyncingSheet,
+    multiSheetConfig,
+    syncAllSheetSources,
+    isSyncingAllSheets
   } = useCRM();
 
   const [showToast, setShowToast] = useState(false);
@@ -110,15 +113,21 @@ export const Navbar: React.FC = () => {
       {/* Header Actions */}
       <div className="flex items-center space-x-2 sm:space-x-3">
         {/* Quick Google Sheets Sync Trigger */}
-        {googleSheetConfig.sheetUrl && (
+        {(multiSheetConfig?.sources?.length > 0 || googleSheetConfig.sheetUrl) && (
           <button
-            onClick={() => syncGoogleSheetLeads(true)}
-            disabled={isSyncingSheet}
-            title={googleSheetConfig.lastSyncAt ? `Google Sheet Sync (Last: ${new Date(googleSheetConfig.lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : 'Sync Google Sheet'}
+            onClick={() => multiSheetConfig?.sources?.length > 0 ? syncAllSheetSources() : syncGoogleSheetLeads(true)}
+            disabled={isSyncingSheet || isSyncingAllSheets}
+            title="Sync all connected Google Sheets for live leads"
             className="flex items-center space-x-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300 transition cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${isSyncingSheet ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{isSyncingSheet ? 'Syncing...' : 'Sync Sheet'}</span>
+            <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${(isSyncingSheet || isSyncingAllSheets) ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">
+              {(isSyncingSheet || isSyncingAllSheets) 
+                ? 'Syncing...' 
+                : (multiSheetConfig?.sources?.length > 1) 
+                  ? `Sync ${multiSheetConfig.sources.length} Sheets` 
+                  : 'Sync Sheet'}
+            </span>
           </button>
         )}
 

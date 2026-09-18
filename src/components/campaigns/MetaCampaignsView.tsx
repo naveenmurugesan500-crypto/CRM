@@ -20,7 +20,10 @@ import {
   BarChart3,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  Building2,
+  Plus,
+  X
 } from 'lucide-react';
 
 export const MetaCampaignsView: React.FC = () => {
@@ -31,7 +34,13 @@ export const MetaCampaignsView: React.FC = () => {
     isSyncingCampaigns,
     setActiveTab,
     setSearchQuery,
-    leads
+    leads,
+    adAccounts,
+    selectedAdAccountId,
+    setSelectedAdAccountId,
+    addAdAccount,
+    deleteAdAccount,
+    adAccountSummaries
   } = useCRM();
 
   const [dateRangeFilter, setDateRangeFilter] = useState('Last 7 Days');
@@ -40,23 +49,66 @@ export const MetaCampaignsView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [syncSuccessToast, setSyncSuccessToast] = useState(false);
 
+  // Add Account Modal State
+  const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
+  const [newAccName, setNewAccName] = useState('');
+  const [newAccId, setNewAccId] = useState('');
+  const [newAccCurrency, setNewAccCurrency] = useState(marketingConfig.currency || 'INR');
+  const [newAccBudget, setNewAccBudget] = useState(5000);
+
   // Currency formatter
   const formatMoney = (amount: number) => {
     return MetaAdsService.formatCurrency(amount, marketingConfig.currency || 'INR');
   };
 
-  // Filter campaigns
+  // Filter campaigns by selected Ad Account
+  const accountFilteredCampaigns = useMemo(() => {
+    if (!selectedAdAccountId || selectedAdAccountId === 'ALL') {
+      return campaignInsights;
+    }
+    return campaignInsights.filter(c => c.adAccountId === selectedAdAccountId);
+  }, [campaignInsights, selectedAdAccountId]);
+
+  // Filter campaigns by search, status, module
   const filteredCampaigns = useMemo(() => {
-    return campaignInsights.filter(campaign => {
+    return accountFilteredCampaigns.filter(campaign => {
       const matchesStatus = statusFilter === 'ALL' || campaign.status === statusFilter;
       const matchesModule = moduleFilter === 'ALL' || campaign.moduleHint === moduleFilter;
       const matchesSearch = 
         campaign.campaignName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         campaign.campaignId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (campaign.adAccountName && campaign.adAccountName.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (campaign.moduleHint && campaign.moduleHint.toLowerCase().includes(searchTerm.toLowerCase()));
       return matchesStatus && matchesModule && matchesSearch;
     });
-  }, [campaignInsights, statusFilter, moduleFilter, searchTerm]);
+  }, [accountFilteredCampaigns, statusFilter, moduleFilter, searchTerm]);
+
+  // Selected Ad Account Object
+  const currentAccount = useMemo(() => {
+    return adAccounts.find(a => a.adAccountId === selectedAdAccountId);
+  }, [adAccounts, selectedAdAccountId]);
+
+  const handleCreateAdAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAccId.trim() || !newAccName.trim()) {
+      alert('Please provide both an Ad Account Name and an Ad Account ID (e.g. act_12345678).');
+      return;
+    }
+
+    const cleanId = newAccId.trim().startsWith('act_') ? newAccId.trim() : `act_${newAccId.trim()}`;
+    addAdAccount({
+      adAccountId: cleanId,
+      accountName: newAccName.trim(),
+      currency: newAccCurrency,
+      isEnabled: true,
+      dailyBudget: Number(newAccBudget) || 5000,
+    });
+
+    setIsAddAccountModalOpen(false);
+    setNewAccName('');
+    setNewAccId('');
+    setSelectedAdAccountId(cleanId);
+  };
 
   // Aggregate Metrics
   const aggregateMetrics = useMemo(() => {
@@ -235,19 +287,75 @@ export const MetaCampaignsView: React.FC = () => {
         </div>
       )}
 
+      {/* Multi-Ad Account Switcher Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setSelectedAdAccountId('ALL')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+              selectedAdAccountId === 'ALL'
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+            }`}
+          >
+            <Building2 className="h-3.5 w-3.5" />
+            <span>All Ad Accounts (Combined)</span>
+            <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+              selectedAdAccountId === 'ALL' ? 'bg-indigo-700 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600'
+            }`}>
+              {adAccounts.length}
+            </span>
+          </button>
+
+          {adAccounts.map(acc => {
+            const isSelected = selectedAdAccountId === acc.adAccountId;
+            const summary = adAccountSummaries.find(s => s.adAccountId === acc.adAccountId);
+            return (
+              <button
+                key={acc.id}
+                onClick={() => setSelectedAdAccountId(acc.adAccountId)}
+                className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white shadow-sm font-bold'
+                    : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300'
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${acc.isEnabled ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                <span>{acc.accountName}</span>
+                {summary && (
+                  <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-mono ${
+                    isSelected ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                  }`}>
+                    {formatMoney(summary.totalSpend)}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={() => setIsAddAccountModalOpen(true)}
+          className="flex items-center space-x-1.5 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-300 transition cursor-pointer"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>Add Ad Account</span>
+        </button>
+      </div>
+
       {/* Meta Ad Account Connection Status Strip */}
       <div className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/70 via-blue-50/40 to-slate-50 p-4 dark:border-indigo-950/50 dark:from-slate-900 dark:via-indigo-950/20 dark:to-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
             <Zap className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            <span>Connected Ad Account:</span>
+            <span>Active Scope:</span>
             <span className="font-mono bg-white dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 text-indigo-700 dark:text-indigo-300">
-              {marketingConfig.adAccountId}
+              {selectedAdAccountId === 'ALL' ? 'All Configured Accounts (Rollup)' : selectedAdAccountId}
             </span>
           </div>
           <span className="text-slate-300 dark:text-slate-700">•</span>
           <span className="text-slate-600 dark:text-slate-400">
-            Account: <strong>{marketingConfig.accountName || 'Nexus Tech Ed Ads Manager'}</strong>
+            Account: <strong>{currentAccount ? currentAccount.accountName : 'Consolidated Portfolio'}</strong>
           </span>
           <span className="text-slate-300 dark:text-slate-700">•</span>
           <span className="text-slate-600 dark:text-slate-400">
@@ -262,6 +370,81 @@ export const MetaCampaignsView: React.FC = () => {
           </span>
         </div>
       </div>
+
+      {/* Ad Account Wise Comparison Grid (Visible when 'ALL' is selected) */}
+      {selectedAdAccountId === 'ALL' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+              <span>Ad Account Wise Performance Comparison</span>
+            </h2>
+            <span className="text-xs text-slate-400 font-medium">
+              Comparing {adAccounts.length} Meta Ad Accounts
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {adAccountSummaries.map((summary) => (
+              <div 
+                key={summary.adAccountId}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 hover:border-indigo-400 dark:hover:border-indigo-600 transition space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="truncate">
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                      {summary.accountName}
+                    </h3>
+                    <span className="font-mono text-[10px] text-slate-400">
+                      {summary.adAccountId}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedAdAccountId(summary.adAccountId)}
+                    className="rounded-lg bg-indigo-50 px-2 py-1 text-[11px] font-bold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-300 transition cursor-pointer"
+                    title="Filter to this account"
+                  >
+                    Filter &rarr;
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Amount Spent</span>
+                    <p className="font-black text-sm text-slate-900 dark:text-white">
+                      {formatMoney(summary.totalSpend)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Total Leads</span>
+                    <p className="font-black text-sm text-purple-600 dark:text-purple-400">
+                      {summary.totalLeads} leads
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Cost Per Lead</span>
+                    <p className="font-black text-sm text-emerald-600 dark:text-emerald-400">
+                      {formatMoney(summary.cpl)}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold uppercase text-slate-400">Unique Reach</span>
+                    <p className="font-semibold text-xs text-slate-700 dark:text-slate-300">
+                      {summary.totalReach.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-100 dark:border-slate-800 pt-2">
+                  <span>Impressions: <strong>{summary.totalImpressions.toLocaleString()}</strong></span>
+                  <span>CTR: <strong>{summary.ctr.toFixed(2)}%</strong></span>
+                  <span>Active: <strong>{summary.activeCampaignsCount}</strong></span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Primary KPI Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -578,6 +761,7 @@ export const MetaCampaignsView: React.FC = () => {
             <thead className="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase font-bold text-slate-500 dark:text-slate-400">
               <tr>
                 <th className="px-4 py-3.5">Status</th>
+                <th className="px-4 py-3.5">Ad Account</th>
                 <th className="px-4 py-3.5">Campaign Name & Module</th>
                 <th className="px-4 py-3.5 text-right">Daily Budget</th>
                 <th className="px-4 py-3.5 text-right">Amount Spent</th>
@@ -607,6 +791,14 @@ export const MetaCampaignsView: React.FC = () => {
                       }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${camp.status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                         {camp.status}
+                      </span>
+                    </td>
+
+                    {/* Ad Account */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                        <Building2 className="h-3 w-3 text-indigo-500" />
+                        {camp.adAccountName || camp.adAccountId || 'Default Account'}
                       </span>
                     </td>
 
@@ -699,7 +891,7 @@ export const MetaCampaignsView: React.FC = () => {
 
               {filteredCampaigns.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={12} className="px-4 py-8 text-center text-slate-400">
                     No campaigns match your current filters. Try changing your search query or status filter.
                   </td>
                 </tr>
@@ -729,6 +921,108 @@ export const MetaCampaignsView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Add Ad Account Modal */}
+      {isAddAccountModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-lg">
+                <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                Connect Meta Ad Account
+              </div>
+              <button
+                onClick={() => setIsAddAccountModalOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAdAccount} className="space-y-4 pt-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                  Ad Account Label / Nickname
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Meta Agency Account - FullStack"
+                  value={newAccName}
+                  onChange={(e) => setNewAccName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                  Meta Ad Account ID
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="act_123456789012345"
+                  value={newAccId}
+                  onChange={(e) => setNewAccId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm font-mono text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Find this in Meta Ads Manager URL: <code className="text-indigo-600">act_xxxxxxxxxxxx</code>
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Currency
+                  </label>
+                  <select
+                    value={newAccCurrency}
+                    onChange={(e) => setNewAccCurrency(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="AED">AED (AED)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                    Daily Budget
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={newAccBudget}
+                    onChange={(e) => setNewAccBudget(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddAccountModalOpen(false)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm cursor-pointer transition-all"
+                >
+                  <Plus className="h-4 w-4" />
+                  Connect Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

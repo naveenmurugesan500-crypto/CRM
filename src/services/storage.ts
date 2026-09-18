@@ -8,10 +8,12 @@ import {
   MetaCampaignInsight,
   MetaMarketingApiConfig,
   CRMSettings,
-  GoogleSheetConfig
+  GoogleSheetConfig,
+  MultiSheetConfig
 } from '../types/crm';
 import { INITIAL_LEADS, DEFAULT_DROPDOWN_SETTINGS } from './mockData';
 import { DEFAULT_MARKETING_CONFIG, DEFAULT_CRM_SETTINGS, INITIAL_CAMPAIGN_INSIGHTS } from './metaAdsService';
+import { DEFAULT_MULTI_SHEET_CONFIG } from './googleSheetsService';
 
 const STORAGE_KEYS = {
   LEADS: 'nexus_meta_leads_v2',
@@ -23,6 +25,7 @@ const STORAGE_KEYS = {
   CRM_SETTINGS: 'nexus_crm_settings_v2',
   CAMPAIGN_INSIGHTS: 'nexus_campaign_insights_v2',
   GOOGLE_SHEET: 'nexus_google_sheet_config_v2',
+  MULTI_SHEET: 'nexus_multi_sheet_config_v2',
 };
 
 export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
@@ -171,6 +174,14 @@ export class MetaStorageService {
     saveToStorage(STORAGE_KEYS.GOOGLE_SHEET, config);
   }
 
+  static getMultiSheetConfig(): MultiSheetConfig {
+    return getFromStorage<MultiSheetConfig>(STORAGE_KEYS.MULTI_SHEET, DEFAULT_MULTI_SHEET_CONFIG);
+  }
+
+  static saveMultiSheetConfig(config: MultiSheetConfig): void {
+    saveToStorage(STORAGE_KEYS.MULTI_SHEET, config);
+  }
+
   static resetToDefault(): void {
     localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(INITIAL_LEADS));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_DROPDOWN_SETTINGS));
@@ -181,6 +192,7 @@ export class MetaStorageService {
     localStorage.setItem(STORAGE_KEYS.CRM_SETTINGS, JSON.stringify(DEFAULT_CRM_SETTINGS));
     localStorage.setItem(STORAGE_KEYS.CAMPAIGN_INSIGHTS, JSON.stringify(INITIAL_CAMPAIGN_INSIGHTS));
     localStorage.setItem(STORAGE_KEYS.GOOGLE_SHEET, JSON.stringify(DEFAULT_GOOGLE_SHEET_CONFIG));
+    localStorage.setItem(STORAGE_KEYS.MULTI_SHEET, JSON.stringify(DEFAULT_MULTI_SHEET_CONFIG));
   }
 
   static calculateStats(leads: MetaLead[]): MetaStats {
@@ -224,6 +236,7 @@ export class MetaStorageService {
       crmSettings: this.getCrmSettings(),
       campaignInsights: this.getCampaignInsights(),
       googleSheetConfig: this.getGoogleSheetConfig(),
+      multiSheetConfig: this.getMultiSheetConfig(),
       columnVisibility: this.getColumnVisibility(),
     };
     return JSON.stringify(exportData, null, 2);
@@ -239,6 +252,7 @@ export class MetaStorageService {
       if (parsed.crmSettings) this.saveCrmSettings(parsed.crmSettings);
       if (Array.isArray(parsed.campaignInsights)) this.saveCampaignInsights(parsed.campaignInsights);
       if (parsed.googleSheetConfig) this.saveGoogleSheetConfig(parsed.googleSheetConfig);
+      if (parsed.multiSheetConfig) this.saveMultiSheetConfig(parsed.multiSheetConfig);
       return true;
     } catch (e) {
       console.error('Import failed:', e);
