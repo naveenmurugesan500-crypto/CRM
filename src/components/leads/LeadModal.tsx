@@ -33,7 +33,7 @@ export const LeadModal: React.FC = () => {
       setName(leadToEdit.name || '');
       setPhone(leadToEdit.phone || '');
       setEmail(leadToEdit.email || '');
-      setModule(leadToEdit.module || dropdownSettings.modules[0] || 'DATA SCIENCE');
+      setModule(leadToEdit.module || dropdownSettings.modules[0] || 'SAP');
       setDateOfLead(leadToEdit.dateOfLead || new Date().toISOString().slice(0, 10));
       setTimeOfLead(leadToEdit.timeOfLead || (leadToEdit.createdAt ? new Date(leadToEdit.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:30 AM'));
       setCampaignName(leadToEdit.campaignName || '');
@@ -47,12 +47,12 @@ export const LeadModal: React.FC = () => {
       setName('');
       setPhone('');
       setEmail('');
-      setModule(dropdownSettings.modules[0] || 'DATA SCIENCE');
+      setModule(dropdownSettings.modules[0] || 'SAP');
       setDateOfLead(new Date().toISOString().slice(0, 10));
       setTimeOfLead(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
-      setCampaignName('Meta_Leads_Sept26');
-      setAdsetName('Graduates_Tech_Audience');
-      setAdName('Ad_Video_CourseBenefits');
+      setCampaignName('Direct Inquiry');
+      setAdsetName('Direct Channel');
+      setAdName('Direct Inbound');
       setHrName(dropdownSettings.hrNames[0] || '');
       setStatus('Interested');
       setCallBackTime('');

@@ -28,6 +28,8 @@ import {
 const CRMMainContent: React.FC = () => {
   const { activeTab, setActiveTab, stats } = useCRM();
 
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 antialiased">
       {/* Top Navbar */}
@@ -51,6 +53,81 @@ const CRMMainContent: React.FC = () => {
           {activeTab === 'settings' && <SettingsView />}
         </main>
       </div>
+
+      {/* Mobile Drawer for Secondary Modules */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-xs flex flex-col justify-end md:hidden animate-in fade-in"
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <div 
+            className="rounded-t-2xl border-t border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                All CRM Modules
+              </span>
+              <button 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 text-xs font-medium">
+              <button
+                onClick={() => { setActiveTab('campaigns'); setIsMobileMenuOpen(false); }}
+                className={`flex items-center space-x-2 rounded-xl p-3 border transition ${
+                  activeTab === 'campaigns' 
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-400 font-bold' 
+                    : 'border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-300'
+                }`}
+              >
+                <BarChart3 className="h-4 w-4 text-indigo-600" />
+                <span>Meta Campaigns</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('google_sheets'); setIsMobileMenuOpen(false); }}
+                className={`flex items-center space-x-2 rounded-xl p-3 border transition ${
+                  activeTab === 'google_sheets' 
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 font-bold' 
+                    : 'border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-300'
+                }`}
+              >
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600" />
+                <span>Google Sheets</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('integration'); setIsMobileMenuOpen(false); }}
+                className={`flex items-center space-x-2 rounded-xl p-3 border transition ${
+                  activeTab === 'integration' 
+                    ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400 font-bold' 
+                    : 'border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-300'
+                }`}
+              >
+                <Zap className="h-4 w-4 text-blue-600" />
+                <span>Meta Form Sync</span>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('settings'); setIsMobileMenuOpen(false); }}
+                className={`flex items-center space-x-2 rounded-xl p-3 border transition ${
+                  activeTab === 'settings' 
+                    ? 'border-slate-500 bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white font-bold' 
+                    : 'border-slate-200 text-slate-700 dark:border-slate-800 dark:text-slate-300'
+                }`}
+              >
+                <Sliders className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                <span>Settings Hub</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation Bar */}
       <nav className="flex md:hidden border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 justify-around py-2 z-20">
@@ -93,6 +170,13 @@ const CRMMainContent: React.FC = () => {
         >
           <Clock className="h-5 w-5 mb-0.5" />
           Callbacks
+        </button>
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className={`flex flex-col items-center text-[10px] ${['campaigns', 'google_sheets', 'integration', 'settings'].includes(activeTab) ? 'text-indigo-600 font-bold dark:text-indigo-400' : 'text-slate-500'}`}
+        >
+          <Sliders className="h-5 w-5 mb-0.5" />
+          More
         </button>
       </nav>
 

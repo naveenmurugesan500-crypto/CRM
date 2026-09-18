@@ -179,8 +179,8 @@ export const Navbar: React.FC = () => {
       {/* Toast notification */}
       {showToast && (
         <div className="fixed bottom-5 right-5 z-50 flex items-center rounded-lg bg-slate-900 px-4 py-3 text-sm text-white shadow-lg dark:bg-white dark:text-slate-900">
-          <Sparkles className="mr-2 h-4 w-4 text-indigo-400" />
-          <span>Demo Meta leads dataset successfully reloaded!</span>
+          <Sparkles className="mr-2 h-4 w-4 text-emerald-400" />
+          <span>CRM database cleared & reset to clean state successfully!</span>
         </div>
       )}
     </header>

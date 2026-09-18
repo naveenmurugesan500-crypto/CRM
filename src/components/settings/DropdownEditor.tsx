@@ -19,6 +19,7 @@ export const DropdownEditor: React.FC = () => {
     addModule, 
     editModule, 
     deleteModule,
+    resetModulesToDefault,
     addHrName, 
     editHrName, 
     deleteHrName,
@@ -92,7 +93,7 @@ export const DropdownEditor: React.FC = () => {
 
       {/* Section 1: Course Modules */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center space-x-2">
             <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400">
               <Layers className="h-5 w-5" />
@@ -102,9 +103,28 @@ export const DropdownEditor: React.FC = () => {
                 Course Modules (Dropdown)
               </h2>
               <p className="text-xs text-slate-400">
-                Options available in the "Module" dropdown on lead forms and filters
+                Options available in the "Module" dropdown on lead forms, filters, and reports
               </p>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold px-2.5 py-1 text-xs border border-indigo-200 dark:border-indigo-800">
+              {dropdownSettings.modules.length} Courses Active
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('Reset course modules to standard academy curriculum (SAP, AWS, Cloud, Data Science, AI, Full Stack, Digital Marketing)?')) {
+                  resetModulesToDefault();
+                }
+              }}
+              className="flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition cursor-pointer"
+              title="Restore standard institute courses"
+            >
+              <RotateCcw className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
+              <span>Standardize</span>
+            </button>
           </div>
         </div>
 

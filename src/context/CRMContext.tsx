@@ -33,6 +33,7 @@ import {
   MetaAdsService 
 } from '../services/metaAdsService';
 import { GoogleSheetsService, DEFAULT_MULTI_SHEET_CONFIG } from '../services/googleSheetsService';
+import { DEFAULT_MODULES } from '../services/mockData';
 
 interface CRMContextType {
   activeTab: NavigationTab;
@@ -117,6 +118,7 @@ interface CRMContextType {
   addModule: (moduleName: string) => void;
   editModule: (oldName: string, newName: string) => void;
   deleteModule: (moduleName: string) => void;
+  resetModulesToDefault: () => void;
 
   addHrName: (hrName: string) => void;
   editHrName: (oldName: string, newName: string) => void;
@@ -752,6 +754,13 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  const resetModulesToDefault = () => {
+    setDropdownSettings(prev => ({
+      ...prev,
+      modules: DEFAULT_MODULES,
+    }));
+  };
+
   const addHrName = (hrName: string) => {
     const trimmed = hrName.trim();
     if (!trimmed || dropdownSettings.hrNames.includes(trimmed)) return;
@@ -912,6 +921,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addModule,
         editModule,
         deleteModule,
+        resetModulesToDefault,
         addHrName,
         editHrName,
         deleteHrName,

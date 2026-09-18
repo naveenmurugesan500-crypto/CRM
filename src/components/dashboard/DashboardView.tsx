@@ -484,7 +484,7 @@ export const DashboardView: React.FC = () => {
           Module Demand in {periodLabel}
         </h2>
         <p className="text-xs text-slate-400 mb-4">
-          Candidate preference across SAP, AWS, Cloud, Data Science, Data Analytics, and AI
+          Candidate interest & enrollment distribution across active course modules
         </p>
 
         <div className="h-56 w-full">

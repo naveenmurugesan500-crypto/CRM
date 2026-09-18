@@ -10,11 +10,17 @@ export const DEFAULT_STATUSES: StatusConfig[] = [
 
 export const DEFAULT_MODULES: string[] = [
   'SAP',
-  'AWS',
-  'CLOUD COMPUTING SUITE',
+  'SAP FICO',
+  'SAP MM',
+  'SAP ABAP',
+  'SAP SD',
+  'AWS & CLOUD COMPUTING',
   'DATA SCIENCE',
-  'DATA ANALYTICS',
-  'AI',
+  'DATA ANALYTICS & BI',
+  'ARTIFICIAL INTELLIGENCE (AI)',
+  'FULL STACK DEVELOPMENT',
+  'DIGITAL MARKETING',
+  'CYBER SECURITY',
 ];
 
 export const DEFAULT_HR_NAMES: string[] = [

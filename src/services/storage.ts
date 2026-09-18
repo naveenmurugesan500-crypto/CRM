@@ -125,7 +125,20 @@ export class MetaStorageService {
   }
 
   static getDropdownSettings(): DropdownSettings {
-    return getFromStorage<DropdownSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_DROPDOWN_SETTINGS);
+    const stored = getFromStorage<DropdownSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_DROPDOWN_SETTINGS);
+    const existing = new Set(stored.modules || []);
+    const mergedModules = [...(stored.modules || [])];
+    for (const mod of DEFAULT_DROPDOWN_SETTINGS.modules) {
+      if (!existing.has(mod)) {
+        mergedModules.push(mod);
+      }
+    }
+    return {
+      ...stored,
+      modules: mergedModules.length > 0 ? mergedModules : DEFAULT_DROPDOWN_SETTINGS.modules,
+      hrNames: stored.hrNames?.length > 0 ? stored.hrNames : DEFAULT_DROPDOWN_SETTINGS.hrNames,
+      statuses: stored.statuses?.length > 0 ? stored.statuses : DEFAULT_DROPDOWN_SETTINGS.statuses,
+    };
   }
 
   static saveDropdownSettings(settings: DropdownSettings): void {
