@@ -24,11 +24,22 @@ import {
   BarChart3,
   FileSpreadsheet
 } from 'lucide-react';
+import { TelecallerMobileApp } from './components/mobile/TelecallerMobileApp';
 
 const CRMMainContent: React.FC = () => {
-  const { activeTab, setActiveTab, stats } = useCRM();
+  const { activeTab, setActiveTab, stats, currentUser, isMobileAppMode } = useCRM();
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
+  // Dedicated Telecaller Mobile Application
+  if (currentUser?.role === 'telecaller' || isMobileAppMode) {
+    return (
+      <div className="bg-slate-100 dark:bg-slate-950 min-h-screen">
+        <TelecallerMobileApp />
+        <CallReportModal />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 antialiased">

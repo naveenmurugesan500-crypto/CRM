@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useCRM } from '../../context/CRMContext';
-import { MetaLead } from '../../types/crm';
+import { MetaLead, canDeleteLeads } from '../../types/crm';
 import { 
   Sparkles, 
   PhoneCall, 
@@ -11,16 +11,17 @@ import {
   CheckCircle2, 
   User, 
   Zap, 
-  ArrowRight,
-  Clock,
-  AlertCircle,
-  FileText,
-  X,
-  Send,
-  Layers,
-  Check,
-  FileSpreadsheet,
-  RefreshCw
+  ArrowRight, 
+  Clock, 
+  AlertCircle, 
+  FileText, 
+  X, 
+  Send, 
+  Layers, 
+  Check, 
+  FileSpreadsheet, 
+  RefreshCw, 
+  Trash2 
 } from 'lucide-react';
 import { 
   formatDate, 
@@ -45,7 +46,9 @@ export const UntouchedLeadsView: React.FC = () => {
     syncAllSheetSources,
     isSyncingAllSheets,
     syncMetaLeadForms,
-    isSyncingMetaForms
+    isSyncingMetaForms,
+    deleteLead,
+    currentUser
   } = useCRM();
 
   const [filterModule, setFilterModule] = useState('all');
@@ -526,11 +529,26 @@ export const UntouchedLeadsView: React.FC = () => {
                           {/* Full Take Lead Modal Button */}
                           <button
                             onClick={() => handleOpenProcessModal(lead)}
-                            className="inline-flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-blue-700 transition active:scale-95"
+                            className="inline-flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-blue-700 transition active:scale-95 cursor-pointer"
                           >
                             <PhoneCall className="h-3 w-3" />
                             <span>Process & Graduate</span>
                           </button>
+
+                          {canDeleteLeads(currentUser?.role || 'admin') && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Delete untouched lead ${lead.name}?`)) {
+                                  deleteLead(lead.id);
+                                }
+                              }}
+                              title="Delete Lead"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

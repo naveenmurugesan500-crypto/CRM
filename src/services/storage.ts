@@ -9,9 +9,10 @@ import {
   MetaMarketingApiConfig,
   CRMSettings,
   GoogleSheetConfig,
-  MultiSheetConfig
+  MultiSheetConfig,
+  CRMUser
 } from '../types/crm';
-import { INITIAL_LEADS, DEFAULT_DROPDOWN_SETTINGS } from './mockData';
+import { INITIAL_LEADS, DEFAULT_DROPDOWN_SETTINGS, DEFAULT_USERS } from './mockData';
 import { 
   DEFAULT_MARKETING_CONFIG, 
   DEFAULT_CRM_SETTINGS, 
@@ -32,6 +33,8 @@ const STORAGE_KEYS = {
   CAMPAIGN_INSIGHTS: 'nexus_meta_campaign_insights_v2',
   GOOGLE_SHEET: 'nexus_google_sheet_config_v2',
   MULTI_SHEET: 'nexus_multi_sheet_config_v2',
+  USERS: 'nexus_crm_users_v1',
+  ACTIVE_USER: 'nexus_crm_active_user_v1',
 };
 
 export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
@@ -209,6 +212,22 @@ export class MetaStorageService {
     saveToStorage(STORAGE_KEYS.MULTI_SHEET, config);
   }
 
+  static getUsers(): CRMUser[] {
+    return getFromStorage<CRMUser[]>(STORAGE_KEYS.USERS, DEFAULT_USERS);
+  }
+
+  static saveUsers(users: CRMUser[]): void {
+    saveToStorage(STORAGE_KEYS.USERS, users);
+  }
+
+  static getActiveUser(): CRMUser {
+    return getFromStorage<CRMUser>(STORAGE_KEYS.ACTIVE_USER, DEFAULT_USERS[0]);
+  }
+
+  static saveActiveUser(user: CRMUser): void {
+    saveToStorage(STORAGE_KEYS.ACTIVE_USER, user);
+  }
+
   static resetToDefault(): void {
     localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(INITIAL_LEADS));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_DROPDOWN_SETTINGS));
@@ -220,6 +239,8 @@ export class MetaStorageService {
     localStorage.setItem(STORAGE_KEYS.CAMPAIGN_INSIGHTS, JSON.stringify(INITIAL_CAMPAIGN_INSIGHTS));
     localStorage.setItem(STORAGE_KEYS.GOOGLE_SHEET, JSON.stringify(DEFAULT_GOOGLE_SHEET_CONFIG));
     localStorage.setItem(STORAGE_KEYS.MULTI_SHEET, JSON.stringify(DEFAULT_MULTI_SHEET_CONFIG));
+    localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(DEFAULT_USERS));
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(DEFAULT_USERS[0]));
   }
 
   static calculateStats(leads: MetaLead[]): MetaStats {

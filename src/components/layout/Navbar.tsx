@@ -12,7 +12,11 @@ import {
   Zap,
   FileSpreadsheet,
   RefreshCw,
-  Trash2
+  Trash2,
+  Smartphone,
+  User,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -32,10 +36,16 @@ export const Navbar: React.FC = () => {
     isSyncingSheet,
     multiSheetConfig,
     syncAllSheetSources,
-    isSyncingAllSheets
+    isSyncingAllSheets,
+    currentUser,
+    setCurrentUser,
+    users,
+    isMobileAppMode,
+    setIsMobileAppMode
   } = useCRM();
 
   const [showToast, setShowToast] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const handleClearData = () => {
     if (window.confirm('Clear all stored CRM data and reset to a clean database? This cannot be undone.')) {
@@ -170,9 +180,95 @@ export const Navbar: React.FC = () => {
           <span className="hidden sm:inline">New Meta Lead</span>
         </button>
 
-        {/* Telecaller User avatar */}
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 font-bold text-white text-xs shadow-sm">
-          HR
+        {/* Mobile App Mode Launcher */}
+        <button
+          onClick={() => setIsMobileAppMode(true)}
+          title="Open Telecaller Mobile Application"
+          className="hidden sm:inline-flex items-center space-x-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 px-2.5 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition cursor-pointer"
+        >
+          <Smartphone className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+          <span className="hidden md:inline">Telecaller App</span>
+        </button>
+
+        {/* User profile dropdown & role indicator */}
+        <div className="relative">
+          <button
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="flex items-center space-x-2 rounded-xl border border-slate-200 bg-white p-1.5 pl-2.5 dark:border-slate-700 dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 transition cursor-pointer shadow-xs"
+          >
+            <div className="hidden lg:block text-left pr-1">
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-tight">
+                {currentUser?.name || 'User'}
+              </div>
+              <div className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold uppercase">
+                {currentUser?.role ? currentUser.role.replace('_', ' ') : 'Admin'}
+              </div>
+            </div>
+
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 font-black text-white text-[11px] shadow-xs">
+              {(currentUser?.name || 'HR').slice(0, 2).toUpperCase()}
+            </div>
+
+            <ChevronDown className="h-3 w-3 text-slate-400" />
+          </button>
+
+          {/* User Menu Dropdown */}
+          {isUserMenuOpen && (
+            <div 
+              className="absolute right-0 mt-2 w-64 rounded-2xl bg-white p-2 shadow-2xl border border-slate-200 dark:border-slate-800 dark:bg-slate-900 z-50 animate-in fade-in"
+              onClick={() => setIsUserMenuOpen(false)}
+            >
+              <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Current Staff User</span>
+                <span className="font-bold text-xs text-slate-900 dark:text-white block">{currentUser?.name}</span>
+                <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold uppercase">
+                  Role: {currentUser?.role ? currentUser.role.replace('_', ' ') : 'Admin'}
+                </span>
+              </div>
+
+              <div className="py-1">
+                <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase">
+                  Switch Active Role / User
+                </div>
+                {users.map((u) => (
+                  <button
+                    key={u.id}
+                    onClick={() => {
+                      setCurrentUser(u);
+                      if (u.role === 'telecaller') {
+                        setIsMobileAppMode(true);
+                      }
+                      setIsUserMenuOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between px-3 py-2 text-xs rounded-xl transition ${
+                      currentUser?.id === u.id 
+                        ? 'bg-indigo-50 text-indigo-700 font-bold dark:bg-indigo-950/60 dark:text-indigo-400' 
+                        : 'text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="text-left">
+                      <div>{u.name}</div>
+                      <div className="text-[10px] text-slate-400 uppercase">{u.role.replace('_', ' ')}</div>
+                    </div>
+                    {currentUser?.id === u.id && <Check className="h-3.5 w-3.5 text-indigo-600" />}
+                  </button>
+                ))}
+              </div>
+
+              <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+                <button
+                  onClick={() => {
+                    setIsMobileAppMode(true);
+                    setIsUserMenuOpen(false);
+                  }}
+                  className="flex w-full items-center space-x-1.5 px-3 py-2 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-xl transition"
+                >
+                  <Smartphone className="h-3.5 w-3.5" />
+                  <span>Launch Telecaller App View</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { MetaLead, DropdownSettings, StatusConfig } from '../types/crm';
+import { MetaLead, DropdownSettings, StatusConfig, CRMUser } from '../types/crm';
 
 export const DEFAULT_STATUSES: StatusConfig[] = [
   { key: 'Interested', label: 'Interested', color: '#8b5cf6', bgLight: 'bg-purple-50 dark:bg-purple-950/40', borderLight: 'border-purple-200 dark:border-purple-800' },
@@ -39,3 +39,77 @@ export const DEFAULT_DROPDOWN_SETTINGS: DropdownSettings = {
 
 // Original Clean State: Zero mock leads. Real leads populate upon connecting Meta or Google Sheets.
 export const INITIAL_LEADS: MetaLead[] = [];
+
+export const DEFAULT_USERS: CRMUser[] = [
+  {
+    id: 'user_admin',
+    name: 'Admin User',
+    phone: '9999999999',
+    email: 'admin@immek.com',
+    password: 'admin',
+    role: 'admin',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user_manager',
+    name: 'Sales Manager',
+    phone: '8888888888',
+    email: 'manager@immek.com',
+    password: 'manager',
+    role: 'sales_manager',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user_tc1',
+    name: 'Priya Sharma',
+    phone: '7777777771',
+    email: 'priya@immek.com',
+    password: '1234',
+    role: 'telecaller',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user_tc2',
+    name: 'Rahul Verma',
+    phone: '7777777772',
+    email: 'rahul@immek.com',
+    password: '1234',
+    role: 'telecaller',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user_tc3',
+    name: 'Ananya Iyer',
+    phone: '7777777773',
+    email: 'ananya@immek.com',
+    password: '1234',
+    role: 'telecaller',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user_tc4',
+    name: 'Vikram Malhotra',
+    phone: '7777777774',
+    email: 'vikram@immek.com',
+    password: '1234',
+    role: 'telecaller',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'user_tc5',
+    name: 'Sneha Patel',
+    phone: '7777777775',
+    email: 'sneha@immek.com',
+    password: '1234',
+    role: 'telecaller',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+];
+

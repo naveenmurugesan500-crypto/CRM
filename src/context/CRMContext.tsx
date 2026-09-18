@@ -16,9 +16,11 @@ import {
   MultiSheetConfig,
   MetaAdAccountConfig,
   AdAccountSummary,
-  NavigationTab
+  NavigationTab,
+  CRMUser,
+  UserRole
 } from '../types/crm';
-export type { NavigationTab };
+export type { NavigationTab, CRMUser, UserRole };
 
 import { 
   MetaStorageService, 
@@ -127,6 +129,26 @@ interface CRMContextType {
   addStatus: (status: StatusConfig) => void;
   deleteStatus: (key: string) => void;
 
+  // User Management & RBAC
+  users: CRMUser[];
+  currentUser: CRMUser;
+  setCurrentUser: (user: CRMUser) => void;
+  addUser: (user: Omit<CRMUser, 'id' | 'createdAt'>) => void;
+  updateUser: (id: string, updates: Partial<CRMUser>) => void;
+  deleteUser: (id: string) => void;
+  isMobileAppMode: boolean;
+  setIsMobileAppMode: (mode: boolean) => void;
+
+  // Bulk Operations
+  selectedLeadIds: string[];
+  setSelectedLeadIds: (ids: string[]) => void;
+  toggleSelectLead: (id: string) => void;
+  selectAllLeads: (ids: string[]) => void;
+  clearSelectedLeads: () => void;
+  bulkDeleteLeads: (ids: string[]) => void;
+  bulkAssignLeads: (ids: string[], hrName: string) => void;
+  bulkUpdateStatus: (ids: string[], status: string) => void;
+
   // System
   resetAllData: () => void;
   exportDatabase: () => void;
@@ -164,6 +186,25 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [leadToLogCall, setLeadToLogCall] = useState<MetaLead | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [leadToEdit, setLeadToEdit] = useState<MetaLead | null>(null);
+
+  // User Management & RBAC
+  const [users, setUsers] = useState<CRMUser[]>(() => MetaStorageService.getUsers());
+  const [currentUser, setCurrentUser] = useState<CRMUser>(() => MetaStorageService.getActiveUser());
+  const [isMobileAppMode, setIsMobileAppMode] = useState<boolean>(() => currentUser?.role === 'telecaller');
+
+  // Bulk Operations
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    MetaStorageService.saveUsers(users);
+  }, [users]);
+
+  useEffect(() => {
+    MetaStorageService.saveActiveUser(currentUser);
+    if (currentUser?.role === 'telecaller') {
+      setIsMobileAppMode(true);
+    }
+  }, [currentUser]);
 
   // Sync dark mode class
   useEffect(() => {
@@ -798,6 +839,89 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
+  // User Management & RBAC operations
+  const addUser = (userData: Omit<CRMUser, 'id' | 'createdAt'>) => {
+    const newUser: CRMUser = {
+      ...userData,
+      id: `user_${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setUsers(prev => [...prev, newUser]);
+    if (newUser.name && !dropdownSettings.hrNames.includes(newUser.name)) {
+      addHrName(newUser.name);
+    }
+  };
+
+  const updateUser = (id: string, updates: Partial<CRMUser>) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
+    if (currentUser?.id === id) {
+      setCurrentUser(prev => ({ ...prev, ...updates }));
+    }
+  };
+
+  const deleteUser = (id: string) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+    if (currentUser?.id === id) {
+      const remaining = users.filter(u => u.id !== id);
+      if (remaining.length > 0) {
+        setCurrentUser(remaining[0]);
+      }
+    }
+  };
+
+  // Bulk Operations
+  const toggleSelectLead = (id: string) => {
+    setSelectedLeadIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const selectAllLeads = (ids: string[]) => {
+    setSelectedLeadIds(ids);
+  };
+
+  const clearSelectedLeads = () => {
+    setSelectedLeadIds([]);
+  };
+
+  const bulkDeleteLeads = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setLeads(prev => prev.filter(l => !ids.includes(l.id)));
+    setSelectedLeadIds([]);
+  };
+
+  const bulkAssignLeads = (ids: string[], hrName: string) => {
+    if (ids.length === 0) return;
+    setLeads(prev => prev.map(l => {
+      if (ids.includes(l.id)) {
+        return {
+          ...l,
+          hrName,
+          isProcessed: true,
+          status: l.status === 'Untouched' ? 'Interested' : l.status,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return l;
+    }));
+    setSelectedLeadIds([]);
+  };
+
+  const bulkUpdateStatus = (ids: string[], status: string) => {
+    if (ids.length === 0) return;
+    setLeads(prev => prev.map(l => {
+      if (ids.includes(l.id)) {
+        return {
+          ...l,
+          status,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return l;
+    }));
+    setSelectedLeadIds([]);
+  };
+
   // System
   const resetAllData = () => {
     MetaStorageService.resetToDefault();
@@ -812,6 +936,10 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setGoogleSheetConfig(DEFAULT_GOOGLE_SHEET_CONFIG);
     setMultiSheetConfig(DEFAULT_MULTI_SHEET_CONFIG);
     setSelectedAdAccountId('ALL');
+    setUsers(MetaStorageService.getUsers());
+    setCurrentUser(MetaStorageService.getActiveUser());
+    setSelectedLeadIds([]);
+    setIsMobileAppMode(false);
   };
 
   const exportDatabase = () => {
@@ -927,6 +1055,22 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteHrName,
         addStatus,
         deleteStatus,
+        users,
+        currentUser,
+        setCurrentUser,
+        addUser,
+        updateUser,
+        deleteUser,
+        isMobileAppMode,
+        setIsMobileAppMode,
+        selectedLeadIds,
+        setSelectedLeadIds,
+        toggleSelectLead,
+        selectAllLeads,
+        clearSelectedLeads,
+        bulkDeleteLeads,
+        bulkAssignLeads,
+        bulkUpdateStatus,
         resetAllData,
         exportDatabase,
         exportCSV,

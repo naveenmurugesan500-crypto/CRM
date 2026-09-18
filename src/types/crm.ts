@@ -212,3 +212,23 @@ export type NavigationTab =
   | 'google_sheets'
   | 'integration'
   | 'settings';
+
+export type UserRole = 'admin' | 'sales_manager' | 'telecaller';
+
+export interface CRMUser {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  password?: string;
+  role: UserRole;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export const canDeleteLeads = (role: UserRole): boolean => role === 'admin' || role === 'sales_manager';
+export const canAssignLeads = (role: UserRole): boolean => role === 'admin' || role === 'sales_manager';
+export const canManageUsers = (role: UserRole): boolean => role === 'admin';
+export const canAccessSettings = (role: UserRole): boolean => role === 'admin';
+export const isTelecallerOnly = (role: UserRole): boolean => role === 'telecaller';
+

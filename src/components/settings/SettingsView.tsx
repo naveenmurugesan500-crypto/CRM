@@ -32,8 +32,10 @@ import {
   Lock
 } from 'lucide-react';
 import { GoogleSheetsSyncView } from '../integration/GoogleSheetsSyncView';
+import { UserManagement } from './UserManagement';
+import { Users } from 'lucide-react';
 
-type SettingsTab = 'google_sheets' | 'meta_api' | 'guide' | 'dropdowns' | 'communication' | 'backup';
+type SettingsTab = 'google_sheets' | 'meta_api' | 'guide' | 'dropdowns' | 'users' | 'communication' | 'backup';
 
 export const SettingsView: React.FC = () => {
   const { 
@@ -275,6 +277,18 @@ export const SettingsView: React.FC = () => {
         >
           <Layers className="h-4 w-4" />
           Editable Dropdown Lists
+        </button>
+
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition-all cursor-pointer ${
+            activeTab === 'users'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Users className="h-4 w-4" />
+          Team & Access (RBAC)
         </button>
 
         <button
@@ -953,6 +967,11 @@ export const SettingsView: React.FC = () => {
         <div className="space-y-6">
           <DropdownEditor />
         </div>
+      )}
+
+      {/* Tab: User Management & Access Control (RBAC) */}
+      {activeTab === 'users' && (
+        <UserManagement />
       )}
 
       {/* Tab 3: Telecalling & WhatsApp Settings */}
