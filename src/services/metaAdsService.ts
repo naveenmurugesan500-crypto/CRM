@@ -185,12 +185,34 @@ export class MetaAdsService {
    */
   static normalizeDatePreset(preset: string = 'Last 30 Days'): string {
     const clean = preset.trim().toLowerCase();
+    // Day wise
+    if (clean === 'today' || clean === 'day' || clean.includes('day')) {
+      if (clean.includes('yesterday')) return 'yesterday';
+      return 'today';
+    }
+    // Week wise
+    if (clean.includes('week')) {
+      if (clean.includes('last week')) return 'last_week_mon_sun';
+      return 'this_week_mon_today';
+    }
     if (clean.includes('7')) return 'last_7d';
     if (clean.includes('14')) return 'last_14d';
+    // Month wise
+    if (clean.includes('month')) {
+      if (clean.includes('last month')) return 'last_month';
+      return 'this_month';
+    }
+    if (clean.includes('30')) return 'last_30d';
     if (clean.includes('90')) return 'last_90d';
-    if (clean.includes('this month')) return 'this_month';
-    if (clean.includes('last month')) return 'last_month';
-    if (clean.includes('lifetime') || clean.includes('all') || clean.includes('maximum')) return 'maximum';
+    // Year wise
+    if (clean.includes('year')) {
+      if (clean.includes('last year')) return 'last_year';
+      return 'this_year';
+    }
+    // Overall / Lifetime
+    if (clean.includes('overall') || clean.includes('lifetime') || clean.includes('maximum') || clean.includes('all')) {
+      return 'maximum';
+    }
     return 'last_30d'; // Default optimal view
   }
 
