@@ -7,25 +7,22 @@ import {
   MessageCircle, 
   Search, 
   Calendar, 
-  Megaphone, 
   CheckCircle2, 
   User, 
   Zap, 
   ArrowRight, 
   Clock, 
   AlertCircle, 
-  FileText, 
   X, 
-  Send, 
-  Layers, 
   Check, 
   FileSpreadsheet, 
   RefreshCw, 
-  Trash2 
+  Trash2,
+  UserCheck,
+  CheckSquare
 } from 'lucide-react';
 import { 
   formatDate, 
-  formatDateTime, 
   cleanPhoneForWhatsApp,
   formatLeadTime 
 } from '../../utils/formatters';
@@ -35,8 +32,6 @@ export const UntouchedLeadsView: React.FC = () => {
     leads, 
     dropdownSettings, 
     processLead,
-    setLeadToEdit, 
-    setIsLeadModalOpen,
     setActiveTab,
     stats,
     googleSheetConfig,
@@ -51,10 +46,18 @@ export const UntouchedLeadsView: React.FC = () => {
     currentUser
   } = useCRM();
 
+  const isSalesManager = currentUser?.role === 'sales_manager';
+
   const [filterModule, setFilterModule] = useState('all');
   const [search, setSearch] = useState('');
   const [recentGraduation, setRecentGraduation] = useState<string | null>(null);
   const [metaSyncNotice, setMetaSyncNotice] = useState<string | null>(null);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkHr, setBulkHr] = useState('');
+  const [isBulkAssigning, setIsBulkAssigning] = useState(false);
+
 
   const handlePullMetaLeads = async () => {
     const res = await syncMetaLeadForms();
@@ -90,6 +93,45 @@ export const UntouchedLeadsView: React.FC = () => {
     }
     return true;
   });
+
+  // ── Bulk selection helpers ──────────────────────────────────────────────────
+  const isAllSelected = filtered.length > 0 && filtered.every(l => selectedIds.includes(l.id));
+  const isSomeSelected = filtered.some(l => selectedIds.includes(l.id));
+  const toggleSelect = (id: string) =>
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  const toggleSelectAll = () =>
+    setSelectedIds(isAllSelected ? [] : filtered.map(l => l.id));
+  const clearSelection = () => { setSelectedIds([]); setBulkHr(''); };
+
+  const handleBulkAssign = (hr: string) => {
+    if (!hr) return;
+    setIsBulkAssigning(true);
+    const toAssign = selectedIds.filter(id => filtered.some(l => l.id === id));
+    toAssign.forEach(id =>
+      processLead(id, {
+        hrName: hr,
+        status: 'Interested',
+        remarks: `Bulk assigned by ${currentUser?.name || 'Manager'}. Counselor: ${hr}.`,
+      })
+    );
+    const count = toAssign.length;
+    setRecentGraduation(`✓ ${count} lead${count > 1 ? 's' : ''} assigned to ${hr} and moved to All Leads!`);
+    setTimeout(() => setRecentGraduation(null), 5000);
+    clearSelection();
+    setIsBulkAssigning(false);
+  };
+
+  // ── Sales Manager: select HR → instant move ─────────────────────────────────
+  const handleSMAssign = (lead: MetaLead, hrName: string) => {
+    if (!hrName) return;
+    processLead(lead.id, {
+      hrName,
+      status: 'Interested',
+      remarks: `Assigned by Sales Manager (${currentUser?.name || 'SM'}). Counselor: ${hrName}.`,
+    });
+    setRecentGraduation(`✓ "${lead.name}" assigned to ${hrName} → moved to All Leads!`);
+    setTimeout(() => setRecentGraduation(null), 5000);
+  };
 
   const handleOpenProcessModal = (lead: MetaLead) => {
     setLeadToProcess(lead);
@@ -177,7 +219,7 @@ export const UntouchedLeadsView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center flex-wrap gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
               Untouched Leads (Inbound Intake)
             </h1>
@@ -185,46 +227,55 @@ export const UntouchedLeadsView: React.FC = () => {
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping mr-0.5" />
               <span>{untouchedLeads.length} Awaiting Counselor</span>
             </span>
+            {isSalesManager && (
+              <span className="rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300 px-2.5 py-0.5 text-xs font-bold border border-blue-200 dark:border-blue-800">
+                Sales Manager View
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Incoming Meta Ads leads with autofilled Name, Phone, Email & Campaign details. Manually assign counselor & status to graduate to All Leads.
+            {isSalesManager
+              ? 'Select a counselor to instantly move the lead to All Leads and assign it in the Telecaller App.'
+              : 'Incoming Meta Ads leads with autofilled Name, Phone, Email & Campaign details. Manually assign counselor & status to graduate to All Leads.'}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => {
-              if (multiSheetConfig?.sources?.length > 0) {
-                syncAllSheetSources();
-              } else if (googleSheetConfig.sheetUrl) {
-                syncGoogleSheetLeads(true);
-              } else {
-                setActiveTab('google_sheets');
-              }
-            }}
-            disabled={isSyncingSheet || isSyncingAllSheets}
-            className="flex items-center space-x-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
-            title="Pull new leads immediately from connected Google Sheets"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${(isSyncingSheet || isSyncingAllSheets) ? 'animate-spin' : ''}`} />
-            <span>
-              {(isSyncingSheet || isSyncingAllSheets) 
-                ? 'Syncing Sheets...' 
-                : (multiSheetConfig?.sources?.length > 1) 
-                  ? `Sync All (${multiSheetConfig.sources.length}) Sheets` 
-                  : 'Sync Google Sheets'}
-            </span>
-          </button>
+          {!isSalesManager && (
+            <>
+              <button
+                onClick={() => {
+                  if (multiSheetConfig?.sources?.length > 0) {
+                    syncAllSheetSources();
+                  } else if (googleSheetConfig.sheetUrl) {
+                    syncGoogleSheetLeads(true);
+                  } else {
+                    setActiveTab('google_sheets');
+                  }
+                }}
+                disabled={isSyncingSheet || isSyncingAllSheets}
+                className="flex items-center space-x-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 ${(isSyncingSheet || isSyncingAllSheets) ? 'animate-spin' : ''}`} />
+                <span>
+                  {(isSyncingSheet || isSyncingAllSheets) 
+                    ? 'Syncing Sheets...' 
+                    : (multiSheetConfig?.sources?.length > 1) 
+                      ? `Sync All (${multiSheetConfig.sources.length}) Sheets` 
+                      : 'Sync Google Sheets'}
+                </span>
+              </button>
 
-          <button
-            onClick={handlePullMetaLeads}
-            disabled={isSyncingMetaForms}
-            className="flex items-center space-x-1.5 rounded-xl border border-purple-300 bg-gradient-to-r from-purple-50 to-indigo-50 px-3.5 py-2 text-xs font-bold text-purple-900 shadow-sm hover:from-purple-100 hover:to-indigo-100 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
-            title="Fetch real inbound leads directly from active Meta Instant Forms"
-          >
-            <Zap className={`h-3.5 w-3.5 text-purple-600 dark:text-purple-400 ${isSyncingMetaForms ? 'animate-spin' : ''}`} />
-            <span>{isSyncingMetaForms ? 'Pulling Meta Leads...' : 'Pull Meta Form Leads'}</span>
-          </button>
+              <button
+                onClick={handlePullMetaLeads}
+                disabled={isSyncingMetaForms}
+                className="flex items-center space-x-1.5 rounded-xl border border-purple-300 bg-gradient-to-r from-purple-50 to-indigo-50 px-3.5 py-2 text-xs font-bold text-purple-900 shadow-sm hover:from-purple-100 hover:to-indigo-100 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <Zap className={`h-3.5 w-3.5 text-purple-600 dark:text-purple-400 ${isSyncingMetaForms ? 'animate-spin' : ''}`} />
+                <span>{isSyncingMetaForms ? 'Pulling Meta Leads...' : 'Pull Meta Form Leads'}</span>
+              </button>
+            </>
+          )}
 
           <button
             onClick={() => setActiveTab('leads')}
@@ -243,10 +294,7 @@ export const UntouchedLeadsView: React.FC = () => {
             <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             <span>{metaSyncNotice}</span>
           </div>
-          <button 
-            onClick={() => setMetaSyncNotice(null)} 
-            className="text-purple-600 hover:text-purple-900 text-xs font-bold ml-4"
-          >
+          <button onClick={() => setMetaSyncNotice(null)} className="text-purple-600 hover:text-purple-900 text-xs font-bold ml-4">
             Dismiss
           </button>
         </div>
@@ -259,28 +307,67 @@ export const UntouchedLeadsView: React.FC = () => {
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <span>{recentGraduation}</span>
           </div>
-          <button 
-            onClick={() => setActiveTab('leads')} 
-            className="underline hover:text-emerald-900 font-bold ml-4"
-          >
+          <button onClick={() => setActiveTab('leads')} className="underline hover:text-emerald-900 font-bold ml-4">
             View in All Leads →
           </button>
         </div>
       )}
 
-      {/* Information Helper Alert */}
+      {/* Information Helper Alert — role-aware */}
       <div className="rounded-xl border border-amber-200/70 bg-gradient-to-r from-amber-50 to-orange-50/60 p-3.5 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-slate-900 dark:text-amber-300 flex items-start space-x-3 shadow-xs">
         <div className="rounded-lg bg-amber-500 text-white p-1 mt-0.5">
           <Sparkles className="h-3.5 w-3.5" />
         </div>
         <div className="flex-1">
-          <div className="font-bold mb-0.5">Intake Protocol: Autofilled Meta Details → Manual Assignment → All Leads</div>
-          <p className="text-amber-800/90 dark:text-amber-400 text-[11px] leading-relaxed">
-            Meta Ads automates <strong>Name, Phone, Email, Module, and Campaign / Adset / Ad Name</strong>. 
-            Before moving to All Leads, a counselor must be selected, the prospect dialed, and lead status set.
-          </p>
+          {isSalesManager ? (
+            <>
+              <div className="font-bold mb-0.5">Sales Manager: Assign Counselor → Lead Auto-Moves to All Leads</div>
+              <p className="text-amber-800/90 dark:text-amber-400 text-[11px] leading-relaxed">
+                Select a counselor from the dropdown. The lead instantly moves to <strong>All Leads</strong> and becomes available in the <strong>Telecaller Mobile App</strong> for that counselor.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="font-bold mb-0.5">Intake Protocol: Autofilled Meta Details → Manual Assignment → All Leads</div>
+              <p className="text-amber-800/90 dark:text-amber-400 text-[11px] leading-relaxed">
+                Meta Ads automates <strong>Name, Phone, Email, Module, and Campaign / Adset / Ad Name</strong>. 
+                Before moving to All Leads, a counselor must be selected, the prospect dialed, and lead status set.
+              </p>
+            </>
+          )}
         </div>
       </div>
+
+      {/* Floating Bulk Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-2xl border border-blue-200 bg-white/95 dark:bg-slate-900/95 dark:border-blue-900 shadow-2xl px-5 py-3 backdrop-blur-sm animate-in slide-in-from-bottom-4">
+          <div className="flex items-center space-x-2">
+            <CheckSquare className="h-4 w-4 text-blue-600" />
+            <span className="text-sm font-bold text-slate-900 dark:text-white">
+              {selectedIds.length} lead{selectedIds.length > 1 ? 's' : ''} selected
+            </span>
+          </div>
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700" />
+          <div className="flex items-center space-x-2">
+            <UserCheck className="h-4 w-4 text-emerald-600" />
+            <select
+              value={bulkHr}
+              onChange={e => { setBulkHr(e.target.value); if (e.target.value) handleBulkAssign(e.target.value); }}
+              className="rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200 focus:outline-none"
+              disabled={isBulkAssigning}
+            >
+              <option value="">⚡ Bulk Assign Counselor...</option>
+              {dropdownSettings.hrNames.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+          <button
+            onClick={clearSelection}
+            className="flex items-center space-x-1 rounded-xl border border-slate-200 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50"
+          >
+            <X className="h-3.5 w-3.5" /><span>Clear</span>
+          </button>
+        </div>
+      )}
 
       {/* Filter Toolbar */}
       <div className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm dark:border-slate-800 dark:bg-slate-900 flex flex-col md:flex-row items-center justify-between gap-3">
@@ -355,28 +442,55 @@ export const UntouchedLeadsView: React.FC = () => {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
                 <tr>
-                  <th className="py-3.5 pl-4 pr-3">Autofilled Prospect</th>
-                  <th className="py-3.5 px-3">Date & Time</th>
-                  <th className="py-3.5 px-3">Direct Connect</th>
-                  <th className="py-3.5 px-3">Module</th>
-                  <th className="py-3.5 px-3">Meta Ad Attribution</th>
-                  <th className="py-3.5 px-3">Counselor (HR)</th>
-                  <th className="py-3.5 px-3">Status</th>
-                  <th className="py-3.5 pr-4 text-right">Intake Action</th>
+                    <th className="py-3.5 pl-4 pr-2 w-8">
+                      <input
+                        type="checkbox"
+                        checked={isAllSelected}
+                        ref={el => { if (el) el.indeterminate = isSomeSelected && !isAllSelected; }}
+                        onChange={toggleSelectAll}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        title="Select all"
+                      />
+                    </th>
+                    <th className="py-3.5 pr-3">Autofilled Prospect</th>
+                    <th className="py-3.5 px-3">Date &amp; Time</th>
+                    <th className="py-3.5 px-3">Direct Connect</th>
+                    <th className="py-3.5 px-3">Module</th>
+                    <th className="py-3.5 px-3">Meta Ad Attribution</th>
+                    {isSalesManager ? (
+                      <th className="py-3.5 px-3">Assign Counselor → Auto Move</th>
+                    ) : (
+                      <>
+                        <th className="py-3.5 px-3">Counselor (HR)</th>
+                        <th className="py-3.5 px-3">Status</th>
+                      </>
+                    )}
+                    <th className="py-3.5 pr-4 text-right">{isSalesManager ? '' : 'Intake Action'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filtered.map((lead) => {
                   const waPhone = cleanPhoneForWhatsApp(lead.phone);
                   const inline = inlineAssignments[lead.id] || { hrName: '', status: '' };
+                  const isSelected = selectedIds.includes(lead.id);
 
                   return (
                     <tr 
                       key={lead.id}
-                      className="hover:bg-amber-50/30 dark:hover:bg-slate-800/40 transition group"
+                      className={`hover:bg-amber-50/30 dark:hover:bg-slate-800/40 transition group ${isSelected ? 'bg-blue-50/60 dark:bg-blue-950/20' : ''}`}
                     >
+                      {/* Checkbox */}
+                      <td className="py-3.5 pl-4 pr-2">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(lead.id)}
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
+
                       {/* Autofilled Prospect Info */}
-                      <td className="py-3.5 pl-4 pr-3">
+                      <td className="py-3.5 pr-3">
                         <div className="flex items-center space-x-2">
                           <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping flex-shrink-0" />
                           <span className="font-bold text-slate-900 dark:text-white text-sm">
@@ -463,94 +577,116 @@ export const UntouchedLeadsView: React.FC = () => {
                         )}
                       </td>
 
-                      {/* Counselor Name (HR Name) */}
-                      <td className="py-3.5 px-3">
-                        <select
-                          value={inline.hrName}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setInlineAssignments(prev => ({
-                              ...prev,
-                              [lead.id]: { ...(prev[lead.id] || { status: '' }), hrName: val }
-                            }));
-                          }}
-                          className={`rounded-lg border px-2 py-1 text-xs font-medium focus:outline-none ${
-                            inline.hrName 
-                              ? 'border-indigo-300 bg-indigo-50/50 text-indigo-900 dark:border-indigo-700 dark:bg-slate-800 dark:text-indigo-300' 
-                              : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
-                          }`}
-                        >
-                          <option value="">⚠️ Select Counselor</option>
-                          {dropdownSettings.hrNames.map(h => (
-                            <option key={h} value={h}>{h}</option>
-                          ))}
-                        </select>
-                      </td>
-
-                      {/* Lead Status */}
-                      <td className="py-3.5 px-3">
-                        <select
-                          value={inline.status}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setInlineAssignments(prev => ({
-                              ...prev,
-                              [lead.id]: { ...(prev[lead.id] || { hrName: '' }), status: val }
-                            }));
-                          }}
-                          className={`rounded-lg border px-2 py-1 text-xs font-medium focus:outline-none ${
-                            inline.status 
-                              ? 'border-emerald-300 bg-emerald-50/50 text-emerald-900 dark:border-emerald-700 dark:bg-slate-800 dark:text-emerald-300' 
-                              : 'border-slate-300 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                          }`}
-                        >
-                          <option value="">⚡ Select Status</option>
-                          {dropdownSettings.statuses.map(s => (
-                            <option key={s.key} value={s.label}>{s.label}</option>
-                          ))}
-                        </select>
-                      </td>
-
-                      {/* Action */}
-                      <td className="py-3.5 pr-4 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end space-x-1.5">
-                          {/* Quick row graduation button if both chosen */}
-                          {inline.hrName && inline.status && inline.status !== 'Call Back' ? (
-                            <button
-                              onClick={() => handleQuickRowProcess(lead)}
-                              className="inline-flex items-center space-x-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition active:scale-95 animate-in fade-in"
-                              title="Move directly to All Leads"
+                      {/* ── SALES MANAGER: HR assign only → auto-move ── */}
+                      {isSalesManager ? (
+                        <>
+                          <td className="py-3.5 px-3">
+                            <select
+                              defaultValue=""
+                              onChange={(e) => { if (e.target.value) handleSMAssign(lead, e.target.value); }}
+                              className="rounded-lg border border-blue-300 bg-blue-50 px-2 py-1.5 text-xs font-semibold text-blue-900 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer min-w-[160px]"
                             >
-                              <Check className="h-3 w-3" />
-                              <span>Move to All Leads</span>
-                            </button>
-                          ) : null}
-
-                          {/* Full Take Lead Modal Button */}
-                          <button
-                            onClick={() => handleOpenProcessModal(lead)}
-                            className="inline-flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-blue-700 transition active:scale-95 cursor-pointer"
-                          >
-                            <PhoneCall className="h-3 w-3" />
-                            <span>Process & Graduate</span>
-                          </button>
-
-                          {canDeleteLeads(currentUser?.role || 'admin') && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm(`Delete untouched lead ${lead.name}?`)) {
-                                  deleteLead(lead.id);
-                                }
+                              <option value="">⚠️ Select Counselor</option>
+                              {dropdownSettings.hrNames.map(h => (
+                                <option key={h} value={h}>{h}</option>
+                              ))}
+                            </select>
+                            <p className="text-[10px] text-blue-500 dark:text-blue-400 mt-1 font-medium">Assigns &amp; moves instantly →</p>
+                          </td>
+                          <td className="py-3.5 pr-4 text-right">
+                            <span className="text-[10px] text-slate-400 italic">Auto on select</span>
+                          </td>
+                        </>
+                      ) : (
+                        /* ── ADMIN: Full Counselor + Status + Actions ── */
+                        <>
+                          {/* Counselor Name (HR Name) */}
+                          <td className="py-3.5 px-3">
+                            <select
+                              value={inline.hrName}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setInlineAssignments(prev => ({
+                                  ...prev,
+                                  [lead.id]: { ...(prev[lead.id] || { status: '' }), hrName: val }
+                                }));
                               }}
-                              title="Delete Lead"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                              className={`rounded-lg border px-2 py-1 text-xs font-medium focus:outline-none ${
+                                inline.hrName 
+                                  ? 'border-indigo-300 bg-indigo-50/50 text-indigo-900 dark:border-indigo-700 dark:bg-slate-800 dark:text-indigo-300' 
+                                  : 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300'
+                              }`}
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                              <option value="">⚠️ Select Counselor</option>
+                              {dropdownSettings.hrNames.map(h => (
+                                <option key={h} value={h}>{h}</option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* Lead Status */}
+                          <td className="py-3.5 px-3">
+                            <select
+                              value={inline.status}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setInlineAssignments(prev => ({
+                                  ...prev,
+                                  [lead.id]: { ...(prev[lead.id] || { hrName: '' }), status: val }
+                                }));
+                              }}
+                              className={`rounded-lg border px-2 py-1 text-xs font-medium focus:outline-none ${
+                                inline.status 
+                                  ? 'border-emerald-300 bg-emerald-50/50 text-emerald-900 dark:border-emerald-700 dark:bg-slate-800 dark:text-emerald-300' 
+                                  : 'border-slate-300 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                              }`}
+                            >
+                              <option value="">⚡ Select Status</option>
+                              {dropdownSettings.statuses.map(s => (
+                                <option key={s.key} value={s.label}>{s.label}</option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* Intake Action */}
+                          <td className="py-3.5 pr-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end space-x-1.5">
+                              {inline.hrName && inline.status && inline.status !== 'Call Back' ? (
+                                <button
+                                  onClick={() => handleQuickRowProcess(lead)}
+                                  className="inline-flex items-center space-x-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition active:scale-95 animate-in fade-in"
+                                >
+                                  <Check className="h-3 w-3" />
+                                  <span>Move to All Leads</span>
+                                </button>
+                              ) : null}
+
+                              <button
+                                onClick={() => handleOpenProcessModal(lead)}
+                                className="inline-flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-blue-700 transition active:scale-95 cursor-pointer"
+                              >
+                                <PhoneCall className="h-3 w-3" />
+                                <span>Process &amp; Graduate</span>
+                              </button>
+
+                              {canDeleteLeads(currentUser?.role || 'admin') && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.confirm(`Delete untouched lead ${lead.name}?`)) {
+                                      deleteLead(lead.id);
+                                    }
+                                  }}
+                                  title="Delete Lead"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
