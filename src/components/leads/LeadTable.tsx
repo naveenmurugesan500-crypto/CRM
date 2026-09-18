@@ -262,8 +262,18 @@ export const LeadTable: React.FC = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredLeads.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="py-14 text-center text-xs text-slate-400">
-                      No leads matching current filters.
+                    <td colSpan={10} className="py-14 text-center text-slate-400">
+                      <div className="max-w-sm mx-auto space-y-2">
+                        <CheckCircle2 className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto" />
+                        <div className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                          {leads.length === 0 ? 'No leads in database yet' : 'No leads matching current filters'}
+                        </div>
+                        <p className="text-xs text-slate-400">
+                          {leads.length === 0 
+                            ? 'Fresh leads from Meta Lead Ads and Google Sheets will stream into Untouched Leads first.' 
+                            : 'Try adjusting your search query or module filters.'}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (

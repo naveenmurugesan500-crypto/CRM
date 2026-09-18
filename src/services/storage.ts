@@ -85,9 +85,27 @@ function saveToStorage<T>(key: string, value: T): void {
   }
 }
 
+// AUTO-PURGE ONE-TIME MIGRATION:
+// Clears previously cached mock/demo data from user's browser localStorage so CRM starts with original data only.
+const DEMO_CLEARED_FLAG = 'crm_demo_data_purged_v3';
+if (typeof window !== 'undefined') {
+  try {
+    if (localStorage.getItem(DEMO_CLEARED_FLAG) !== 'true') {
+      localStorage.removeItem(STORAGE_KEYS.LEADS);
+      localStorage.removeItem(STORAGE_KEYS.CAMPAIGN_INSIGHTS);
+      localStorage.removeItem(STORAGE_KEYS.MULTI_SHEET);
+      localStorage.removeItem(STORAGE_KEYS.GOOGLE_SHEET);
+      localStorage.removeItem(STORAGE_KEYS.MARKETING_CONFIG);
+      localStorage.setItem(DEMO_CLEARED_FLAG, 'true');
+    }
+  } catch (e) {
+    // Ignore localStorage errors
+  }
+}
+
 export class MetaStorageService {
   static getLeads(): MetaLead[] {
-    const raw = getFromStorage<MetaLead[]>(STORAGE_KEYS.LEADS, INITIAL_LEADS);
+    const raw = getFromStorage<MetaLead[]>(STORAGE_KEYS.LEADS, []);
     const normalized = raw.map(l => ({
       ...l,
       timeOfLead: l.timeOfLead || (l.createdAt ? new Date(l.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }) : '10:00 AM'),
@@ -95,13 +113,6 @@ export class MetaStorageService {
         ? l.isProcessed 
         : ((l.callReports && l.callReports.length > 0) || (!!l.hrName && l.status !== 'Untouched')),
     }));
-
-    // Ensure all fresh INITIAL_LEADS (such as SIVAKUMAR) are included if not yet present
-    const existingIds = new Set(normalized.map(l => l.id));
-    const missingInitial = INITIAL_LEADS.filter(l => !existingIds.has(l.id));
-    if (missingInitial.length > 0) {
-      return [...missingInitial, ...normalized];
-    }
 
     return normalized;
   }

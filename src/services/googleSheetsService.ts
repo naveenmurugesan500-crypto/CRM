@@ -32,41 +32,7 @@ export const DEFAULT_GOOGLE_SHEET_CONFIG: GoogleSheetConfig = {
 };
 
 export const DEFAULT_MULTI_SHEET_CONFIG: MultiSheetConfig = {
-  sources: [
-    {
-      id: 'sheet_1',
-      name: 'SAP Instant Form Leads (Account 1)',
-      sheetUrl: '',
-      adAccountName: 'Nexus Tech Ed - Primary Growth',
-      targetModule: 'SAP',
-      enabled: true,
-      lastSyncStatus: 'idle',
-      totalSyncedCount: 0,
-      lastFetchedRows: 0,
-    },
-    {
-      id: 'sheet_2',
-      name: 'AWS & Cloud Form Leads (Account 1)',
-      sheetUrl: '',
-      adAccountName: 'Nexus Tech Ed - Primary Growth',
-      targetModule: 'AWS',
-      enabled: true,
-      lastSyncStatus: 'idle',
-      totalSyncedCount: 0,
-      lastFetchedRows: 0,
-    },
-    {
-      id: 'sheet_3',
-      name: 'Data Science & AI Leads (Account 2)',
-      sheetUrl: '',
-      adAccountName: 'Nexus Tech Ed - Scale & AI',
-      targetModule: 'DATA SCIENCE',
-      enabled: true,
-      lastSyncStatus: 'idle',
-      totalSyncedCount: 0,
-      lastFetchedRows: 0,
-    }
-  ],
+  sources: [],
   autoSync: true,
   syncInterval: 2,
 };

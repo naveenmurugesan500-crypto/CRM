@@ -696,51 +696,57 @@ export const MetaCampaignsView: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-          {filteredCampaigns.map(c => {
-            const pctOfSpend = aggregateMetrics.totalSpend > 0 
-              ? Math.round((c.amountSpent / aggregateMetrics.totalSpend) * 100) 
-              : 0;
+        {filteredCampaigns.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400">
+            No course module campaign spend data available yet. Connect your Meta Ad Account to stream live spend analytics.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+            {filteredCampaigns.map(c => {
+              const pctOfSpend = aggregateMetrics.totalSpend > 0 
+                ? Math.round((c.amountSpent / aggregateMetrics.totalSpend) * 100) 
+                : 0;
 
-            return (
-              <div 
-                key={c.campaignId}
-                className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 dark:border-slate-800/80 dark:bg-slate-800/40 space-y-2 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">
-                    {c.moduleHint || c.campaignName}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                    c.status === 'ACTIVE' 
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400' 
-                      : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
-                  }`}>
-                    {c.status}
-                  </span>
-                </div>
+              return (
+                <div 
+                  key={c.campaignId}
+                  className="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5 dark:border-slate-800/80 dark:bg-slate-800/40 space-y-2 hover:border-indigo-300 dark:hover:border-indigo-700 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate">
+                      {c.moduleHint || c.campaignName}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                      c.status === 'ACTIVE' 
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-400' 
+                        : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                    }`}>
+                      {c.status}
+                    </span>
+                  </div>
 
-                {/* Progress bar */}
-                <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                  <div 
-                    className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.min(pctOfSpend, 100)}%` }}
-                  />
-                </div>
+                  {/* Progress bar */}
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-indigo-600 h-2 rounded-full transition-all duration-500" 
+                      style={{ width: `${Math.min(pctOfSpend, 100)}%` }}
+                    />
+                  </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
-                  <span>Spend: <strong className="text-slate-900 dark:text-slate-100">{formatMoney(c.amountSpent)}</strong> ({pctOfSpend}%)</span>
-                  <span>CPL: <strong className="text-emerald-600 dark:text-emerald-400">{formatMoney(c.cpl)}</strong></span>
-                </div>
+                  <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
+                    <span>Spend: <strong className="text-slate-900 dark:text-slate-100">{formatMoney(c.amountSpent)}</strong> ({pctOfSpend}%)</span>
+                    <span>CPL: <strong className="text-emerald-600 dark:text-emerald-400">{formatMoney(c.cpl)}</strong></span>
+                  </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-200/50 dark:border-slate-700/50 pt-1.5">
-                  <span>Leads: <strong className="text-slate-700 dark:text-slate-300">{c.leadsCount}</strong></span>
-                  <span>Daily: <strong className="text-slate-700 dark:text-slate-300">{formatMoney(c.dailyBudget)}</strong></span>
+                  <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-200/50 dark:border-slate-700/50 pt-1.5">
+                    <span>Leads: <strong className="text-slate-700 dark:text-slate-300">{c.leadsCount}</strong></span>
+                    <span>Daily: <strong className="text-slate-700 dark:text-slate-300">{formatMoney(c.dailyBudget)}</strong></span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Main Campaign Breakdown Table */}
@@ -894,8 +900,27 @@ export const MetaCampaignsView: React.FC = () => {
 
               {filteredCampaigns.length === 0 && (
                 <tr>
-                  <td colSpan={12} className="px-4 py-8 text-center text-slate-400">
-                    No campaigns match your current filters. Try changing your search query or status filter.
+                  <td colSpan={12} className="px-4 py-12 text-center text-slate-400">
+                    <div className="max-w-md mx-auto space-y-3">
+                      <BarChart3 className="h-10 w-10 text-slate-300 dark:text-slate-600 mx-auto" />
+                      <div className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                        {campaignInsights.length === 0 ? 'No Meta Campaigns Synced Yet' : 'No campaigns match current filters'}
+                      </div>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {campaignInsights.length === 0
+                          ? 'Enter your Meta User Access Token and Ad Account ID in Settings, then click "Sync Latest Meta Insights" to pull live spend, CPL, reach, and impression data from Meta Graph API.'
+                          : 'Try changing your search query or status filter.'}
+                      </p>
+                      {campaignInsights.length === 0 && (
+                        <button
+                          onClick={() => setActiveTab('settings')}
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition cursor-pointer"
+                        >
+                          <span>Configure Meta API in Settings</span>
+                          <ArrowUpRight className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )}

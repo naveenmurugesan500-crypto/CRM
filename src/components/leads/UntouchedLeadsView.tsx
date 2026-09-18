@@ -206,15 +206,6 @@ export const UntouchedLeadsView: React.FC = () => {
           </button>
 
           <button
-            onClick={simulateMetaLead}
-            className="flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-3.5 py-2 text-xs font-bold text-white shadow-sm hover:from-amber-600 hover:to-orange-600 transition active:scale-95 cursor-pointer"
-            title="Simulate a new inbound lead from Meta Instant Form"
-          >
-            <Zap className="h-3.5 w-3.5" />
-            <span>Simulate Inbound Lead (+1)</span>
-          </button>
-
-          <button
             onClick={() => setActiveTab('leads')}
             className="flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 transition cursor-pointer"
           >
@@ -294,26 +285,30 @@ export const UntouchedLeadsView: React.FC = () => {
           </div>
           <div className="space-y-1">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-              Zero Untouched Leads!
+              {leads.length === 0 ? 'Awaiting Inbound Leads' : 'Zero Untouched Leads!'}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-              Every inbound prospect from Meta Ads has been assigned to a counselor and graduated into All Leads.
+              {leads.length === 0 
+                ? 'Your CRM is clean and ready. Connect your Meta Lead Ads or Google Sheets to automatically stream fresh leads here.' 
+                : 'Every inbound prospect from Meta Ads has been assigned to a counselor and graduated into All Leads.'}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {leads.length > 0 && (
+              <button
+                onClick={() => setActiveTab('leads')}
+                className="inline-flex items-center space-x-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
+              >
+                <span>View All Meta Leads Pipeline ({stats.processedCount})</span>
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            )}
             <button
-              onClick={() => setActiveTab('leads')}
-              className="inline-flex items-center space-x-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
-            >
-              <span>View All Meta Leads Pipeline ({stats.processedCount})</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-            <button
-              onClick={simulateMetaLead}
+              onClick={() => setActiveTab('google_sheets')}
               className="inline-flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 transition"
             >
-              <Zap className="h-3.5 w-3.5 text-amber-500" />
-              <span>Simulate New Inbound Lead</span>
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" />
+              <span>Connect Google Sheets / Forms</span>
             </button>
           </div>
         </div>

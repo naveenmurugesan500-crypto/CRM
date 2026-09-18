@@ -11,7 +11,8 @@ import {
   Download,
   Zap,
   FileSpreadsheet,
-  RefreshCw
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -36,8 +37,8 @@ export const Navbar: React.FC = () => {
 
   const [showToast, setShowToast] = useState(false);
 
-  const handleReset = () => {
-    if (window.confirm('Reset all Meta Ads leads and dropdowns back to initial demonstration dataset?')) {
+  const handleClearData = () => {
+    if (window.confirm('Clear all stored CRM data and reset to a clean database? This cannot be undone.')) {
       resetAllData();
       setShowToast(true);
       setTimeout(() => setShowToast(false), 3000);
@@ -141,14 +142,14 @@ export const Navbar: React.FC = () => {
           <span>Export CSV</span>
         </button>
 
-        {/* Demo Data Reset */}
+        {/* Clear Database button */}
         <button
-          onClick={handleReset}
-          title="Reset to Realistic Demo Data"
-          className="hidden lg:flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition"
+          onClick={handleClearData}
+          title="Clear all CRM data and reset to a clean state"
+          className="hidden lg:flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-rose-950/40 transition cursor-pointer"
         >
-          <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-          <span>Demo Data</span>
+          <Trash2 className="h-3.5 w-3.5 text-slate-400" />
+          <span>Clear Data</span>
         </button>
 
         {/* Dark/Light Mode Toggle */}

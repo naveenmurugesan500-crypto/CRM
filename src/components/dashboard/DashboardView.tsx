@@ -204,13 +204,6 @@ export const DashboardView: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2">
-          <button
-            onClick={simulateMetaLead}
-            className="flex items-center space-x-1.5 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/60 dark:text-indigo-300 transition active:scale-95"
-          >
-            <Zap className="h-3.5 w-3.5 text-indigo-500" />
-            <span>Simulate Live Lead</span>
-          </button>
 
           <button
             onClick={() => { setLeadToEdit(null); setIsLeadModalOpen(true); }}
