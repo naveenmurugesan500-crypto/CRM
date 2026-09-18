@@ -53,6 +53,7 @@ export const MetaCampaignsView: React.FC = () => {
   const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
   const [newAccName, setNewAccName] = useState('');
   const [newAccId, setNewAccId] = useState('');
+  const [newAccToken, setNewAccToken] = useState('');
   const [newAccCurrency, setNewAccCurrency] = useState(marketingConfig.currency || 'INR');
   const [newAccBudget, setNewAccBudget] = useState(5000);
 
@@ -102,11 +103,13 @@ export const MetaCampaignsView: React.FC = () => {
       currency: newAccCurrency,
       isEnabled: true,
       dailyBudget: Number(newAccBudget) || 5000,
+      accessToken: newAccToken.trim() || undefined,
     });
 
     setIsAddAccountModalOpen(false);
     setNewAccName('');
     setNewAccId('');
+    setNewAccToken('');
     setSelectedAdAccountId(cleanId);
   };
 
@@ -956,7 +959,7 @@ export const MetaCampaignsView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Meta Ad Account ID
+                  Meta Ad Account ID <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -968,6 +971,27 @@ export const MetaCampaignsView: React.FC = () => {
                 />
                 <p className="mt-1 text-[11px] text-slate-500">
                   Find this in Meta Ads Manager URL: <code className="text-indigo-600">act_xxxxxxxxxxxx</code>
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    Access Token (Optional)
+                  </label>
+                  <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                    Leave blank to use Master Token
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  placeholder="EAAL8b... (Only if different Facebook account/BM)"
+                  value={newAccToken}
+                  onChange={(e) => setNewAccToken(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-mono text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  If this account is under the same Meta Business Manager, leave this empty to inherit the Master Token.
                 </p>
               </div>
 

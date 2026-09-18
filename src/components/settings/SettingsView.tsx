@@ -25,7 +25,11 @@ import {
   Check,
   BookOpen,
   Info,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Building2,
+  Plus,
+  X,
+  Lock
 } from 'lucide-react';
 import { GoogleSheetsSyncView } from '../integration/GoogleSheetsSyncView';
 
@@ -44,7 +48,11 @@ export const SettingsView: React.FC = () => {
     importDatabase,
     resetAllData,
     syncCampaignInsights,
-    leads
+    leads,
+    adAccounts,
+    addAdAccount,
+    updateAdAccount,
+    deleteAdAccount
   } = useCRM();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('meta_api');
@@ -58,6 +66,35 @@ export const SettingsView: React.FC = () => {
   const [pageId, setPageId] = useState(marketingConfig.pageId);
   const [currency, setCurrency] = useState(marketingConfig.currency || 'INR');
   const [autoSyncInterval, setAutoSyncInterval] = useState(marketingConfig.autoSyncInterval || '15m');
+
+  // Add Ad Account in Settings
+  const [isAddAccOpen, setIsAddAccOpen] = useState(false);
+  const [newAccName, setNewAccName] = useState('');
+  const [newAccId, setNewAccId] = useState('');
+  const [newAccToken, setNewAccToken] = useState('');
+  const [newAccCurrency, setNewAccCurrency] = useState(marketingConfig.currency || 'INR');
+  const [newAccBudget, setNewAccBudget] = useState(5000);
+
+  const handleAddNewAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAccId.trim() || !newAccName.trim()) {
+      alert('Please fill in Ad Account Name and ID.');
+      return;
+    }
+    const cleanId = newAccId.trim().startsWith('act_') ? newAccId.trim() : `act_${newAccId.trim()}`;
+    addAdAccount({
+      adAccountId: cleanId,
+      accountName: newAccName.trim(),
+      currency: newAccCurrency,
+      isEnabled: true,
+      dailyBudget: Number(newAccBudget) || 5000,
+      accessToken: newAccToken.trim() || undefined,
+    });
+    setIsAddAccOpen(false);
+    setNewAccName('');
+    setNewAccId('');
+    setNewAccToken('');
+  };
 
   // WhatsApp & Calling settings
   const [countryCode, setCountryCode] = useState(crmSettings.defaultCountryCode || '+91');
@@ -478,6 +515,252 @@ export const SettingsView: React.FC = () => {
               </button>
             </div>
           </form>
+
+          {/* Multi-Ad Account Portfolio Manager */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                    Connected Meta Ad Accounts Portfolio ({adAccounts.length})
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Manage multiple Meta ad accounts. All enabled accounts are queried simultaneously for Spend, CPL, Impressions, and Reach.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAddAccOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm cursor-pointer transition-all"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Connect Ad Account</span>
+              </button>
+            </div>
+
+            {/* Architecture Explanation Callout */}
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-900/40 dark:bg-indigo-950/20 text-xs text-slate-700 dark:text-slate-300 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-indigo-950 dark:text-indigo-200 text-sm">
+                <Info className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                <span>How Multi-Account Meta API Authentication Works</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px] pt-1">
+                <div className="bg-white/80 dark:bg-slate-900/60 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/40 space-y-1">
+                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                    <span>Case 1: Same Business Manager (Default)</span>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    If all ad accounts are under the same Meta Business Manager (or your agency has partner access), your single <strong>Master Access Token</strong> above has permission to query all of them. Leave the account token empty.
+                  </p>
+                </div>
+                <div className="bg-white/80 dark:bg-slate-900/60 p-3 rounded-lg border border-indigo-100 dark:border-indigo-900/40 space-y-1">
+                  <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                    <Key className="h-3.5 w-3.5 text-indigo-500" />
+                    <span>Case 2: Different Facebook Accounts / Clients</span>
+                  </div>
+                  <p className="text-slate-600 dark:text-slate-400">
+                    If an ad account belongs to a separate client or different Meta login, provide a dedicated <strong>Custom Access Token</strong> for that account when connecting it.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Accounts Table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 uppercase font-bold text-slate-500 dark:text-slate-400 text-[10px]">
+                  <tr>
+                    <th className="px-3.5 py-3">Status</th>
+                    <th className="px-3.5 py-3">Account Name</th>
+                    <th className="px-3.5 py-3">Ad Account ID</th>
+                    <th className="px-3.5 py-3">Currency & Budget</th>
+                    <th className="px-3.5 py-3">Authentication Token</th>
+                    <th className="px-3.5 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
+                  {adAccounts.map(acc => (
+                    <tr key={acc.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30">
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => updateAdAccount(acc.id, { isEnabled: !acc.isEnabled })}
+                          className={`relative inline-flex h-4 w-8 items-center rounded-full transition-colors cursor-pointer ${
+                            acc.isEnabled ? 'bg-emerald-600' : 'bg-slate-300 dark:bg-slate-700'
+                          }`}
+                          title={acc.isEnabled ? 'Active in sync' : 'Disabled'}
+                        >
+                          <span
+                            className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                              acc.isEnabled ? 'translate-x-4' : 'translate-x-0.5'
+                            }`}
+                          />
+                        </button>
+                      </td>
+                      <td className="px-3.5 py-3 font-bold text-slate-900 dark:text-white whitespace-nowrap">
+                        {acc.accountName}
+                      </td>
+                      <td className="px-3.5 py-3 font-mono text-[11px] text-slate-500 whitespace-nowrap">
+                        {acc.adAccountId}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        <span className="font-semibold">{acc.currency || 'INR'}</span>
+                        {acc.dailyBudget ? ` (₹${acc.dailyBudget.toLocaleString()}/day)` : ''}
+                      </td>
+                      <td className="px-3.5 py-3 whitespace-nowrap">
+                        {acc.accessToken ? (
+                          <span className="inline-flex items-center gap-1 rounded bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            <Key className="h-2.5 w-2.5" />
+                            Custom Token
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400">
+                            <ShieldCheck className="h-2.5 w-2.5 text-emerald-500" />
+                            Uses Master Token
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Remove "${acc.accountName}" (${acc.adAccountId})?`)) {
+                              deleteAdAccount(acc.id);
+                            }
+                          }}
+                          className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                          title="Delete Ad Account"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Add Ad Account Modal in Settings */}
+          {isAddAccOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+              <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                  <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-base">
+                    <Building2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    Connect Another Meta Ad Account
+                  </div>
+                  <button
+                    onClick={() => setIsAddAccOpen(false)}
+                    className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddNewAccount} className="space-y-4 pt-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      Account Nickname <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Meta Agency - Data Science"
+                      value={newAccName}
+                      onChange={(e) => setNewAccName(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                      Meta Ad Account ID <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="act_123456789012345"
+                      value={newAccId}
+                      onChange={(e) => setNewAccId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-mono text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Access Token (Optional)
+                      </label>
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                        Leave blank to inherit Master Token
+                      </span>
+                    </div>
+                    <input
+                      type="password"
+                      placeholder="EAAL8b... (Only if different BM/Facebook account)"
+                      value={newAccToken}
+                      onChange={(e) => setNewAccToken(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-mono text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        Currency
+                      </label>
+                      <select
+                        value={newAccCurrency}
+                        onChange={(e) => setNewAccCurrency(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white cursor-pointer"
+                      >
+                        <option value="INR">INR (₹)</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="AED">AED (AED)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                        Daily Budget
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="500"
+                        value={newAccBudget}
+                        onChange={(e) => setNewAccBudget(Number(e.target.value))}
+                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddAccOpen(false)}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700 shadow-sm cursor-pointer transition-all"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Account
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
