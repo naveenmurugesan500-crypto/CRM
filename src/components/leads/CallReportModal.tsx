@@ -9,7 +9,8 @@ import {
   CheckCircle2, 
   AlertCircle,
   MessageSquare,
-  Sparkles
+  Sparkles,
+  Volume2
 } from 'lucide-react';
 import { cleanPhoneForWhatsApp } from '../../utils/formatters';
 
@@ -209,7 +210,7 @@ export const CallReportModal: React.FC = () => {
               </span>
               <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
                 {leadToLogCall.callReports.map(cr => (
-                  <div key={cr.id} className="rounded-lg border border-slate-100 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-slate-800/60 text-xs">
+                  <div key={cr.id} className="rounded-lg border border-slate-100 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-slate-800/60 text-xs space-y-1.5">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="font-bold text-indigo-600 dark:text-indigo-400">
                         {cr.statusAtCall} • {cr.hrName}
@@ -218,7 +219,17 @@ export const CallReportModal: React.FC = () => {
                         {new Date(cr.createdAt).toLocaleDateString()} {new Date(cr.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <p className="mt-1 text-slate-700 dark:text-slate-300">{cr.remarks}</p>
+                    <p className="text-slate-700 dark:text-slate-300">{cr.remarks}</p>
+
+                    {cr.recordingUrl && (
+                      <div className="pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mb-1">
+                          <Volume2 className="h-3 w-3" />
+                          <span>Voice Recording ({cr.recordingDuration ? `${Math.floor(cr.recordingDuration / 60)}:${(cr.recordingDuration % 60).toString().padStart(2, '0')}` : 'Audio'})</span>
+                        </div>
+                        <audio src={cr.recordingUrl} controls className="w-full h-7" />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

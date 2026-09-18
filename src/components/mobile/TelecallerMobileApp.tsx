@@ -22,7 +22,15 @@ import {
   Send,
   Layers,
   PhoneForwarded,
-  Flame
+  Flame,
+  Mic,
+  Square,
+  Play,
+  Pause,
+  Trash2,
+  Volume2,
+  Upload,
+  Radio
 } from 'lucide-react';
 import { 
   formatDate, 
@@ -62,6 +70,107 @@ export const TelecallerMobileApp: React.FC = () => {
   const [callBackTime, setCallBackTime] = useState('');
   const [remarks, setRemarks] = useState('');
   const [successToast, setSuccessToast] = useState('');
+
+  // Call Recorder State
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [recordedAudioUrl, setRecordedAudioUrl] = useState<string | null>(null);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const audioChunksRef = React.useRef<Blob[]>([]);
+  const timerRef = React.useRef<any>(null);
+  const audioPlayerRef = React.useRef<HTMLAudioElement | null>(null);
+
+  // Format seconds to mm:ss
+  const formatSeconds = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Start Mic Recording
+  const startRecording = async () => {
+    setRecordingError(null);
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setRecordingError('Audio recording is not supported in this browser environment.');
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm;codecs=opus' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          const base64data = reader.result as string;
+          setRecordedAudioUrl(base64data);
+        };
+        // Stop all audio tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start(250);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err: any) {
+      console.error('Error accessing microphone:', err);
+      setRecordingError(err.message || 'Could not access microphone. Please allow mic permission.');
+    }
+  };
+
+  // Stop Recording
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+  };
+
+  // Discard Recording
+  const discardRecording = () => {
+    if (isRecording) {
+      stopRecording();
+    }
+    setRecordedAudioUrl(null);
+    setRecordingDuration(0);
+    if (audioPlayerRef.current) {
+      audioPlayerRef.current.pause();
+      setIsPlayingAudio(false);
+    }
+  };
+
+  // Handle local audio file upload (fallback for external recording)
+  const handleAudioFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setRecordedAudioUrl(event.target?.result as string);
+      setRecordingDuration(Math.round(file.size / 16000) || 15);
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Determine effective telecaller name:
   // If current user is telecaller, strictly their name. If admin/manager, allows previewing any telecaller or all assigned
@@ -143,6 +252,9 @@ export const TelecallerMobileApp: React.FC = () => {
       setCallBackTime('11:00');
     }
     setRemarks('');
+    // Reset recording state
+    discardRecording();
+    setRecordingError(null);
   };
 
   // Handle 1-tap call & auto open logger
@@ -158,10 +270,17 @@ export const TelecallerMobileApp: React.FC = () => {
     e.preventDefault();
     if (!activeModalLead) return;
 
+    // If currently recording, stop it first
+    if (isRecording) {
+      stopRecording();
+    }
+
     let finalCallBack: string | undefined = undefined;
     if (statusToUpdate === 'Call Back' && callBackDate) {
       finalCallBack = callBackTime ? `${callBackDate}T${callBackTime}` : `${callBackDate}T10:00`;
     }
+
+    const recName = recordedAudioUrl ? `Call_${activeModalLead.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.webm` : undefined;
 
     // Process & log call report
     processLead(activeModalLead.id, {
@@ -169,6 +288,9 @@ export const TelecallerMobileApp: React.FC = () => {
       status: statusToUpdate,
       callBackTime: finalCallBack,
       remarks: remarks.trim() || `Call logged by ${effectiveHrName}`,
+      recordingUrl: recordedAudioUrl || undefined,
+      recordingDuration: recordingDuration > 0 ? recordingDuration : undefined,
+      recordingName: recName,
     });
 
     logCallReport(activeModalLead.id, {
@@ -176,10 +298,14 @@ export const TelecallerMobileApp: React.FC = () => {
       statusAtCall: statusToUpdate,
       callBackTime: finalCallBack,
       remarks: remarks.trim() || `Status updated to ${statusToUpdate}`,
+      recordingUrl: recordedAudioUrl || undefined,
+      recordingDuration: recordingDuration > 0 ? recordingDuration : undefined,
+      recordingName: recName,
     });
 
     setActiveModalLead(null);
-    setSuccessToast(`Saved status for ${activeModalLead.name}!`);
+    discardRecording();
+    setSuccessToast(`Saved status & call details for ${activeModalLead.name}!`);
     setTimeout(() => setSuccessToast(''), 3000);
   };
 
@@ -471,11 +597,30 @@ export const TelecallerMobileApp: React.FC = () => {
 
                   {/* Previous Call Remark / Note */}
                   {latestReport?.remarks && (
-                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-2.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
-                      <span className="font-bold text-slate-700 dark:text-slate-200 block text-[10px] uppercase text-indigo-500 mb-0.5">
-                        Last Remark ({formatDate(latestReport.createdAt)}):
-                      </span>
+                    <div className="rounded-xl bg-slate-50 dark:bg-slate-800/60 p-2.5 text-xs text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-700 dark:text-slate-200 block text-[10px] uppercase text-indigo-500">
+                          Last Remark ({formatDate(latestReport.createdAt)}):
+                        </span>
+                        {latestReport?.recordingUrl && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200">
+                            <Volume2 className="h-3 w-3" />
+                            <span>Audio Recorded</span>
+                          </span>
+                        )}
+                      </div>
                       <p className="line-clamp-2">{latestReport.remarks}</p>
+
+                      {/* Embedded Audio Player for past recording */}
+                      {latestReport?.recordingUrl && (
+                        <div className="pt-1">
+                          <audio
+                            src={latestReport.recordingUrl}
+                            controls
+                            className="w-full h-7 rounded-lg"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -602,15 +747,107 @@ export const TelecallerMobileApp: React.FC = () => {
               {/* Call Note / Remark */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Discussion Notes & Remarks
+                  Discussion Notes &amp; Remarks
                 </label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={remarks}
                   onChange={(e) => setRemarks(e.target.value)}
-                  placeholder="e.g. Discussed SAP MM curriculum, student requested weekend batch details, agreed to call back tomorrow."
+                  placeholder="e.g. Discussed course syllabus, fee structure, student requested callback."
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 focus:border-indigo-500 focus:bg-white focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
+              </div>
+
+              {/* ── Call Recorder Widget ── */}
+              <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 to-slate-50 p-3 dark:border-indigo-950 dark:bg-slate-800/60 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5">
+                    <div className="h-6 w-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                      <Mic className="h-3.5 w-3.5" />
+                    </div>
+                    <span className="text-xs font-extrabold text-slate-900 dark:text-white">
+                      Call Voice Recording
+                    </span>
+                  </div>
+                  {isRecording && (
+                    <span className="flex items-center space-x-1 text-[10px] font-extrabold text-rose-600 bg-rose-50 dark:bg-rose-950/60 px-2 py-0.5 rounded-full border border-rose-200 animate-pulse">
+                      <span className="h-1.5 w-1.5 rounded-full bg-rose-600 animate-ping mr-0.5" />
+                      <span>REC {formatSeconds(recordingDuration)}</span>
+                    </span>
+                  )}
+                </div>
+
+                {recordingError && (
+                  <div className="rounded-lg bg-rose-50 border border-rose-200 p-2 text-[11px] text-rose-700 flex items-center gap-1.5 dark:bg-rose-950/40 dark:border-rose-900 dark:text-rose-300">
+                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>{recordingError}</span>
+                  </div>
+                )}
+
+                {/* Recorder Control Buttons */}
+                {!recordedAudioUrl ? (
+                  <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                    {!isRecording ? (
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        className="flex-1 inline-flex items-center justify-center space-x-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 py-2 text-xs font-bold text-white shadow-sm hover:from-rose-700 hover:to-red-700 active:scale-95 transition cursor-pointer"
+                      >
+                        <Mic className="h-3.5 w-3.5" />
+                        <span>Start Recording</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="flex-1 inline-flex items-center justify-center space-x-1.5 rounded-xl bg-slate-900 py-2 text-xs font-bold text-white shadow-sm hover:bg-slate-800 active:scale-95 transition cursor-pointer animate-pulse"
+                      >
+                        <Square className="h-3.5 w-3.5 fill-current" />
+                        <span>Stop &amp; Save ({formatSeconds(recordingDuration)})</span>
+                      </button>
+                    )}
+
+                    {/* File Upload Option for external recordings */}
+                    <label className="inline-flex items-center space-x-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer shadow-xs">
+                      <Upload className="h-3 w-3 text-slate-500" />
+                      <span>Upload File</span>
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleAudioFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  /* Audio Player & Discard Preview */
+                  <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-2.5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Volume2 className="h-4 w-4 text-emerald-600" />
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Recorded Call Audio {recordingDuration > 0 ? `(${formatSeconds(recordingDuration)})` : ''}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={discardRecording}
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                        title="Delete recording and record again"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        <span>Retake</span>
+                      </button>
+                    </div>
+
+                    <audio
+                      ref={audioPlayerRef}
+                      src={recordedAudioUrl}
+                      controls
+                      className="w-full h-8"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">

@@ -5,6 +5,9 @@ export interface CallReport {
   statusAtCall: string;
   callBackTime?: string;
   remarks: string;
+  recordingUrl?: string; // Base64 audio or blob URL of recorded call
+  recordingDuration?: number; // Duration in seconds
+  recordingName?: string;
   createdAt: string;
 }
 
@@ -23,6 +26,7 @@ export interface MetaLead {
   status: string; // 'Untouched' initially, then Pitched, Registration, Not Interested, Call Back, Interested
   callBackTime?: string; // If Status is call back
   callReports: CallReport[];
+  lastRecordingUrl?: string;
   notes?: string;
   city?: string;
   formName?: string;

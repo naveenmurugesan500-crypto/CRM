@@ -113,8 +113,8 @@ interface CRMContextType {
   updateLead: (id: string, updates: Partial<MetaLead>) => void;
   deleteLead: (id: string) => void;
   moveLeadStatus: (leadId: string, newStatus: string) => void;
-  processLead: (leadId: string, details: { hrName: string; status: string; callBackTime?: string; remarks?: string }) => void;
-  logCallReport: (leadId: string, report: { hrName: string; statusAtCall: string; callBackTime?: string; remarks: string }) => void;
+  processLead: (leadId: string, details: { hrName: string; status: string; callBackTime?: string; remarks?: string; recordingUrl?: string; recordingDuration?: number; recordingName?: string }) => void;
+  logCallReport: (leadId: string, report: { hrName: string; statusAtCall: string; callBackTime?: string; remarks: string; recordingUrl?: string; recordingDuration?: number; recordingName?: string }) => void;
 
   // Dropdown Customization operations
   addModule: (moduleName: string) => void;
@@ -711,7 +711,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
    */
   const processLead = (
     leadId: string, 
-    details: { hrName: string; status: string; callBackTime?: string; remarks?: string }
+    details: { hrName: string; status: string; callBackTime?: string; remarks?: string; recordingUrl?: string; recordingDuration?: number; recordingName?: string }
   ) => {
     const newReport: CallReport = {
       id: `cr-${Date.now()}`,
@@ -720,6 +720,9 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       statusAtCall: details.status,
       callBackTime: details.status === 'Call Back' ? details.callBackTime : undefined,
       remarks: details.remarks?.trim() || `Counselor assigned: ${details.hrName}. Status updated to ${details.status}.`,
+      recordingUrl: details.recordingUrl,
+      recordingDuration: details.recordingDuration,
+      recordingName: details.recordingName,
       createdAt: new Date().toISOString(),
     };
 
@@ -731,6 +734,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: details.status,
           callBackTime: details.status === 'Call Back' ? (details.callBackTime || '') : '',
           notes: details.remarks ? `${details.remarks}\n${l.notes || ''}`.trim() : l.notes,
+          lastRecordingUrl: details.recordingUrl || l.lastRecordingUrl,
           isProcessed: true, // Graduated from Untouched to All Leads!
           callReports: [newReport, ...(l.callReports || [])],
           updatedAt: new Date().toISOString(),
@@ -742,7 +746,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
   };
 
-  const logCallReport = (leadId: string, reportData: { hrName: string; statusAtCall: string; callBackTime?: string; remarks: string }) => {
+  const logCallReport = (leadId: string, reportData: { hrName: string; statusAtCall: string; callBackTime?: string; remarks: string; recordingUrl?: string; recordingDuration?: number; recordingName?: string }) => {
     const newReport: CallReport = {
       id: `cr-${Date.now()}`,
       leadId,
@@ -750,6 +754,9 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       statusAtCall: reportData.statusAtCall,
       callBackTime: reportData.callBackTime,
       remarks: reportData.remarks,
+      recordingUrl: reportData.recordingUrl,
+      recordingDuration: reportData.recordingDuration,
+      recordingName: reportData.recordingName,
       createdAt: new Date().toISOString(),
     };
 
@@ -760,6 +767,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           status: reportData.statusAtCall,
           callBackTime: reportData.statusAtCall === 'Call Back' ? (reportData.callBackTime || l.callBackTime) : '',
           hrName: reportData.hrName || l.hrName,
+          lastRecordingUrl: reportData.recordingUrl || l.lastRecordingUrl,
           isProcessed: true,
           callReports: [newReport, ...(l.callReports || [])],
           updatedAt: new Date().toISOString(),

@@ -26,7 +26,8 @@ import {
   Square,
   X,
   UserCheck,
-  Tag
+  Tag,
+  Volume2
 } from 'lucide-react';
 import { 
   formatDate, 
@@ -484,12 +485,22 @@ export const LeadTable: React.FC = () => {
                           </td>
                         )}
 
-                        {/* Calls Count */}
+                        {/* Calls Count & Recording */}
                         {columnVisibility.showCallsCount && (
                           <td className="py-3 px-3 text-center">
-                            <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-bold text-slate-700 dark:text-slate-300">
-                              {lead.callReports?.length || 0}
-                            </span>
+                            <div className="flex items-center justify-center space-x-1.5">
+                              <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                                {lead.callReports?.length || 0}
+                              </span>
+                              {lead.callReports?.some(r => r.recordingUrl) && (
+                                <span 
+                                  className="inline-flex items-center text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 p-1 rounded-md border border-emerald-200 dark:border-emerald-800"
+                                  title="Voice call recording available"
+                                >
+                                  <Volume2 className="h-3 w-3" />
+                                </span>
+                              )}
+                            </div>
                           </td>
                         )}
 
