@@ -22,7 +22,7 @@ import {
 } from './metaAdsService';
 import { DEFAULT_MULTI_SHEET_CONFIG } from './googleSheetsService';
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   LEADS: 'nexus_meta_leads_v2',
   SETTINGS: 'nexus_meta_dropdown_settings_v2',
   VIEW_MODE: 'nexus_meta_view_mode_v2',
@@ -88,7 +88,23 @@ function getFromStorage<T>(key: string, fallback: T): T {
 
 function saveToStorage<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    localStorage.setItem(key, serialized);
+
+    // Notify same window components & other tabs immediately
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('crm-storage-update', { detail: { key, value } }));
+      
+      try {
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('crm_sync_channel');
+          bc.postMessage({ key, value });
+          bc.close();
+        }
+      } catch (bcError) {
+        // BroadcastChannel optional fallback
+      }
+    }
   } catch (e) {
     console.error(`Failed to save ${key} to storage:`, e);
   }

@@ -24,6 +24,7 @@ export type { NavigationTab, CRMUser, UserRole };
 
 import { 
   MetaStorageService, 
+  STORAGE_KEYS,
   DEFAULT_COLUMN_VISIBILITY, 
   DEFAULT_META_CONFIG,
   DEFAULT_GOOGLE_SHEET_CONFIG
@@ -216,6 +217,55 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [isDarkMode]);
 
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
+
+  // Real-time synchronization across browser tabs and views (Telecaller <-> Manager <-> Admin)
+  useEffect(() => {
+    // 1. Native window storage event (fired across different tabs/windows)
+    const handleNativeStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.LEADS && e.newValue) {
+        try {
+          const freshLeads: MetaLead[] = JSON.parse(e.newValue);
+          setLeads(freshLeads);
+        } catch (err) {
+          // Ignore JSON parse error
+        }
+      }
+    };
+
+    // 2. Custom window event (fired within the same tab/window)
+    const handleCustomStorage = (e: Event) => {
+      const customEvent = e as CustomEvent<{ key: string; value: any }>;
+      if (customEvent.detail?.key === STORAGE_KEYS.LEADS && Array.isArray(customEvent.detail.value)) {
+        setLeads(customEvent.detail.value);
+      }
+    };
+
+    // 3. BroadcastChannel (fast modern cross-tab sync)
+    let broadcastChannel: BroadcastChannel | null = null;
+    try {
+      if ('BroadcastChannel' in window) {
+        broadcastChannel = new BroadcastChannel('crm_sync_channel');
+        broadcastChannel.onmessage = (event) => {
+          if (event.data?.key === STORAGE_KEYS.LEADS && Array.isArray(event.data.value)) {
+            setLeads(event.data.value);
+          }
+        };
+      }
+    } catch (bcErr) {
+      // Ignore broadcast channel errors
+    }
+
+    window.addEventListener('storage', handleNativeStorage);
+    window.addEventListener('crm-storage-update', handleCustomStorage);
+
+    return () => {
+      window.removeEventListener('storage', handleNativeStorage);
+      window.removeEventListener('crm-storage-update', handleCustomStorage);
+      if (broadcastChannel) {
+        broadcastChannel.close();
+      }
+    };
+  }, []);
 
   // Persist handlers
   useEffect(() => {
