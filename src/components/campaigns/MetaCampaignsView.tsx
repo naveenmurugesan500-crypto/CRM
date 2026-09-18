@@ -301,6 +301,158 @@ export const MetaCampaignsView: React.FC = () => {
         </div>
       </div>
 
+      {/* Meta Ads Marketing & Spend Analytics - Master Timeframe Filter */}
+      <div className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/90 via-white to-blue-50/50 p-4 shadow-sm dark:border-indigo-950/60 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+            <Calendar className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Analytics Timeframe Filter:
+              </span>
+              <span className="rounded-md bg-indigo-600 px-2.5 py-0.5 text-xs font-bold text-white shadow-xs font-mono">
+                {dateRangeFilter}
+              </span>
+              {isSyncingCampaigns && (
+                <span className="flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold animate-pulse">
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  Updating metrics live...
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Filter and recalculate Spend, Budget, CPL, Reach, and Impressions across all 5 accounts for Day, Week, Month, or Year.
+            </p>
+          </div>
+        </div>
+
+        {/* Filter Buttons: Day | Week | Month | Year | Overall */}
+        <div className="flex flex-wrap items-center gap-1.5 bg-white/90 dark:bg-slate-800/90 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-xs">
+          {/* Day Wise */}
+          <div className="flex items-center rounded-lg bg-slate-50 dark:bg-slate-900 p-0.5 border border-slate-200/80 dark:border-slate-700/60">
+            <span className="px-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Day:</span>
+            <button
+              onClick={() => handleDateRangeChange('Today')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'Today' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => handleDateRangeChange('Yesterday')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'Yesterday' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              Yesterday
+            </button>
+          </div>
+
+          {/* Week Wise */}
+          <div className="flex items-center rounded-lg bg-slate-50 dark:bg-slate-900 p-0.5 border border-slate-200/80 dark:border-slate-700/60">
+            <span className="px-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Week:</span>
+            <button
+              onClick={() => handleDateRangeChange('This Week')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'This Week' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              This Week
+            </button>
+            <button
+              onClick={() => handleDateRangeChange('Last 7 Days')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'Last 7 Days' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              Last 7D
+            </button>
+          </div>
+
+          {/* Month Wise */}
+          <div className="flex items-center rounded-lg bg-slate-50 dark:bg-slate-900 p-0.5 border border-slate-200/80 dark:border-slate-700/60">
+            <span className="px-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Month:</span>
+            <button
+              onClick={() => handleDateRangeChange('This Month')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'This Month' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              This Month
+            </button>
+            <button
+              onClick={() => handleDateRangeChange('Last 30 Days')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'Last 30 Days' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              Last 30D
+            </button>
+            <button
+              onClick={() => handleDateRangeChange('Last Month')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'Last Month' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              Last Month
+            </button>
+          </div>
+
+          {/* Year Wise */}
+          <div className="flex items-center rounded-lg bg-slate-50 dark:bg-slate-900 p-0.5 border border-slate-200/80 dark:border-slate-700/60">
+            <span className="px-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">Year:</span>
+            <button
+              onClick={() => handleDateRangeChange('This Year')}
+              disabled={isSyncingCampaigns}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-md transition cursor-pointer ${
+                dateRangeFilter === 'This Year' 
+                  ? 'bg-indigo-600 text-white shadow-xs font-bold' 
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800'
+              }`}
+            >
+              This Year
+            </button>
+          </div>
+
+          {/* Overall */}
+          <button
+            onClick={() => handleDateRangeChange('Overall')}
+            disabled={isSyncingCampaigns}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer ${
+              dateRangeFilter === 'Overall' 
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs' 
+                : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700/60 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            Overall (Lifetime)
+          </button>
+        </div>
+      </div>
+
       {/* Leads Sync Alert */}
       {leadSyncMessage && (
         <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-purple-900 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300 flex items-center justify-between animate-fadeIn">
