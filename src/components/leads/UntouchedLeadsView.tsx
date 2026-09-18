@@ -79,6 +79,9 @@ export const UntouchedLeadsView: React.FC = () => {
   // Inline row quick-assignment state
   const [inlineAssignments, setInlineAssignments] = useState<Record<string, { hrName: string; status: string }>>({});
 
+  // Sales Manager per-row selected counselor draft state before clicking "Assign"
+  const [smSelectedHr, setSmSelectedHr] = useState<Record<string, string>>({});
+
   const filtered = untouchedLeads.filter(l => {
     if (filterModule !== 'all' && l.module !== filterModule) return false;
     if (search) {
@@ -121,15 +124,19 @@ export const UntouchedLeadsView: React.FC = () => {
     setIsBulkAssigning(false);
   };
 
-  // ── Sales Manager: select HR → instant move ─────────────────────────────────
-  const handleSMAssign = (lead: MetaLead, hrName: string) => {
-    if (!hrName) return;
+  // ── Sales Manager: click Assign button → move to next stage (All Leads) ───────
+  const handleSMAssign = (lead: MetaLead) => {
+    const hrName = smSelectedHr[lead.id];
+    if (!hrName) {
+      alert(`Please select a Counselor for ${lead.name} first.`);
+      return;
+    }
     processLead(lead.id, {
       hrName,
       status: 'Interested',
       remarks: `Assigned by Sales Manager (${currentUser?.name || 'SM'}). Counselor: ${hrName}.`,
     });
-    setRecentGraduation(`✓ "${lead.name}" assigned to ${hrName} → moved to All Leads!`);
+    setRecentGraduation(`✓ "${lead.name}" assigned to ${hrName} and moved to All Leads!`);
     setTimeout(() => setRecentGraduation(null), 5000);
   };
 
@@ -321,9 +328,9 @@ export const UntouchedLeadsView: React.FC = () => {
         <div className="flex-1">
           {isSalesManager ? (
             <>
-              <div className="font-bold mb-0.5">Sales Manager: Assign Counselor → Lead Auto-Moves to All Leads</div>
+              <div className="font-bold mb-0.5">Sales Manager: Select Counselor &amp; Click Assign → Moves to All Leads</div>
               <p className="text-amber-800/90 dark:text-amber-400 text-[11px] leading-relaxed">
-                Select a counselor from the dropdown. The lead instantly moves to <strong>All Leads</strong> and becomes available in the <strong>Telecaller Mobile App</strong> for that counselor.
+                Select a counselor for each lead and click <strong>Assign</strong>. The lead will move to <strong>All Leads</strong> and immediately become available in the <strong>Telecaller Mobile App</strong> for that counselor.
               </p>
             </>
           ) : (
@@ -458,14 +465,17 @@ export const UntouchedLeadsView: React.FC = () => {
                     <th className="py-3.5 px-3">Module</th>
                     <th className="py-3.5 px-3">Meta Ad Attribution</th>
                     {isSalesManager ? (
-                      <th className="py-3.5 px-3">Assign Counselor → Auto Move</th>
+                      <>
+                        <th className="py-3.5 px-3">Assign Counselor</th>
+                        <th className="py-3.5 pr-4 text-right">Action</th>
+                      </>
                     ) : (
                       <>
                         <th className="py-3.5 px-3">Counselor (HR)</th>
                         <th className="py-3.5 px-3">Status</th>
+                        <th className="py-3.5 pr-4 text-right">Intake Action</th>
                       </>
                     )}
-                    <th className="py-3.5 pr-4 text-right">{isSalesManager ? '' : 'Intake Action'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -528,29 +538,31 @@ export const UntouchedLeadsView: React.FC = () => {
                         <div className="font-semibold text-xs text-slate-900 dark:text-slate-100 whitespace-nowrap">
                           {lead.phone}
                         </div>
-                        <div className="flex items-center space-x-1.5 mt-1">
-                          <a
-                            href={`tel:${lead.phone}`}
-                            className="inline-flex items-center space-x-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300"
-                            title="Call directly"
-                          >
-                            <PhoneCall className="h-2.5 w-2.5" />
-                            <span>Call</span>
-                          </a>
-
-                          {waPhone && (
+                        {!isSalesManager && (
+                          <div className="flex items-center space-x-1.5 mt-1">
                             <a
-                              href={`https://wa.me/${waPhone}?text=Hi%20${encodeURIComponent(lead.name)},%20thank%20you%20for%20your%20inquiry%20regarding%20our%20${encodeURIComponent(lead.module)}%20course.`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center space-x-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300"
-                              title="Chat on WhatsApp"
+                              href={`tel:${lead.phone}`}
+                              className="inline-flex items-center space-x-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300"
+                              title="Call directly"
                             >
-                              <MessageCircle className="h-2.5 w-2.5" />
-                              <span>WA</span>
+                              <PhoneCall className="h-2.5 w-2.5" />
+                              <span>Call</span>
                             </a>
-                          )}
-                        </div>
+
+                            {waPhone && (
+                              <a
+                                href={`https://wa.me/${waPhone}?text=Hi%20${encodeURIComponent(lead.name)},%20thank%20you%20for%20your%20inquiry%20regarding%20our%20${encodeURIComponent(lead.module)}%20course.`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center space-x-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageCircle className="h-2.5 w-2.5" />
+                                <span>WA</span>
+                              </a>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Course Module */}
@@ -577,24 +589,38 @@ export const UntouchedLeadsView: React.FC = () => {
                         )}
                       </td>
 
-                      {/* ── SALES MANAGER: HR assign only → auto-move ── */}
+                      {/* ── SALES MANAGER: Select Counselor + Click Assign Button ── */}
                       {isSalesManager ? (
                         <>
                           <td className="py-3.5 px-3">
                             <select
-                              defaultValue=""
-                              onChange={(e) => { if (e.target.value) handleSMAssign(lead, e.target.value); }}
-                              className="rounded-lg border border-blue-300 bg-blue-50 px-2 py-1.5 text-xs font-semibold text-blue-900 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer min-w-[160px]"
+                              value={smSelectedHr[lead.id] || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setSmSelectedHr(prev => ({ ...prev, [lead.id]: val }));
+                              }}
+                              className="rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-900 dark:border-blue-700 dark:bg-blue-950/40 dark:text-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer min-w-[160px]"
                             >
                               <option value="">⚠️ Select Counselor</option>
                               {dropdownSettings.hrNames.map(h => (
                                 <option key={h} value={h}>{h}</option>
                               ))}
                             </select>
-                            <p className="text-[10px] text-blue-500 dark:text-blue-400 mt-1 font-medium">Assigns &amp; moves instantly →</p>
                           </td>
                           <td className="py-3.5 pr-4 text-right">
-                            <span className="text-[10px] text-slate-400 italic">Auto on select</span>
+                            {smSelectedHr[lead.id] ? (
+                              <button
+                                type="button"
+                                onClick={() => handleSMAssign(lead)}
+                                className="inline-flex items-center space-x-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:from-blue-700 hover:to-indigo-700 transition active:scale-95 cursor-pointer animate-in fade-in"
+                                title={`Assign ${lead.name} to ${smSelectedHr[lead.id]} and move to All Leads`}
+                              >
+                                <UserCheck className="h-3.5 w-3.5" />
+                                <span>Assign</span>
+                              </button>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 italic">Select counselor</span>
+                            )}
                           </td>
                         </>
                       ) : (
