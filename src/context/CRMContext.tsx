@@ -55,6 +55,8 @@ interface CRMContextType {
   metaConfig: MetaIntegrationConfig;
   updateMetaConfig: (updates: Partial<MetaIntegrationConfig>) => void;
   importMetaLeads: (newLeads: MetaLead[]) => void;
+  syncMetaLeadForms: () => Promise<{ success: boolean; newLeads: number; message: string }>;
+  isSyncingMetaForms: boolean;
 
   // Google Sheets Live Sync (Single & Multi-Source)
   googleSheetConfig: GoogleSheetConfig;
@@ -77,7 +79,7 @@ interface CRMContextType {
   updateMarketingConfig: (updates: Partial<MetaMarketingApiConfig>) => void;
   crmSettings: CRMSettings;
   updateCrmSettings: (updates: Partial<CRMSettings>) => void;
-  syncCampaignInsights: () => Promise<boolean>;
+  syncCampaignInsights: (datePreset?: string) => Promise<boolean>;
   isSyncingCampaigns: boolean;
 
   // Multi-Ad Account Selection & Summaries
@@ -508,10 +510,12 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCrmSettings(prev => ({ ...prev, ...updates }));
   };
 
-  const syncCampaignInsights = async (): Promise<boolean> => {
+  const [isSyncingMetaForms, setIsSyncingMetaForms] = useState(false);
+
+  const syncCampaignInsights = async (datePreset: string = 'Last 30 Days'): Promise<boolean> => {
     setIsSyncingCampaigns(true);
     try {
-      const liveData = await MetaAdsService.fetchCampaignInsights(marketingConfig, 'last_7d', leadsRef.current);
+      const liveData = await MetaAdsService.fetchCampaignInsights(marketingConfig, datePreset, leadsRef.current);
       setCampaignInsights(liveData);
       setMarketingConfig(prev => ({ ...prev, lastSyncAt: new Date().toISOString() }));
       return true;
@@ -522,6 +526,66 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsSyncingCampaigns(false);
     }
   };
+
+  const syncMetaLeadForms = async (): Promise<{ success: boolean; newLeads: number; message: string }> => {
+    setIsSyncingMetaForms(true);
+    try {
+      const token = metaConfig.accessToken || marketingConfig.accessToken;
+      const pageId = metaConfig.pageId || marketingConfig.pageId;
+      const fetchedLeads = await MetaAdsService.fetchMetaFormLeads(token, pageId);
+
+      if (fetchedLeads.length === 0) {
+        return { success: true, newLeads: 0, message: 'No new leads found in Meta Instant Forms.' };
+      }
+
+      let newCount = 0;
+      setLeads(prev => {
+        const cleanDigits = (p: string) => (p || '').replace(/\D/g, '').slice(-10);
+        const existingIds = new Set(prev.map(l => l.id));
+        const existingPhones = new Set(prev.map(l => cleanDigits(l.phone)).filter(Boolean));
+        const existingEmails = new Set(prev.map(l => (l.email || '').toLowerCase().trim()).filter(Boolean));
+
+        const freshLeads: MetaLead[] = [];
+        for (const lead of fetchedLeads) {
+          const ph = cleanDigits(lead.phone);
+          const em = (lead.email || '').toLowerCase().trim();
+
+          if (existingIds.has(lead.id)) continue;
+          if (ph && existingPhones.has(ph)) continue;
+          if (em && existingEmails.has(em)) continue;
+
+          freshLeads.push(lead);
+          existingIds.add(lead.id);
+          if (ph) existingPhones.add(ph);
+          if (em) existingEmails.add(em);
+        }
+
+        newCount = freshLeads.length;
+        return [...freshLeads, ...prev];
+      });
+
+      setMetaConfig(prev => ({ ...prev, lastSyncAt: new Date().toISOString() }));
+      return {
+        success: true,
+        newLeads: newCount,
+        message: newCount > 0 
+          ? `Successfully synced ${newCount} fresh leads from Meta Instant Forms into Untouched Leads!` 
+          : 'All Meta form leads are already synchronized.'
+      };
+    } catch (err: any) {
+      console.error('Failed to sync Meta Form leads:', err);
+      return { success: false, newLeads: 0, message: err.message || 'Failed to sync Meta lead forms.' };
+    } finally {
+      setIsSyncingMetaForms(false);
+    }
+  };
+
+  // Auto-sync initial campaigns if pre-wired and empty
+  useEffect(() => {
+    if (marketingConfig.isConnected && marketingConfig.accessToken && campaignInsights.length === 0) {
+      syncCampaignInsights('Last 30 Days');
+    }
+  }, []);
 
   const stats = MetaStorageService.calculateStats(leads);
 
@@ -801,6 +865,8 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         metaConfig,
         updateMetaConfig,
         importMetaLeads,
+        syncMetaLeadForms,
+        isSyncingMetaForms,
         googleSheetConfig,
         updateGoogleSheetConfig,
         syncGoogleSheetLeads,

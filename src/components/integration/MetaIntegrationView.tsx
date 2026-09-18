@@ -24,6 +24,8 @@ export const MetaIntegrationView: React.FC = () => {
     metaConfig, 
     updateMetaConfig, 
     importMetaLeads, 
+    syncMetaLeadForms,
+    isSyncingMetaForms,
     stats,
     setActiveTab,
     googleSheetConfig
@@ -181,12 +183,41 @@ export const MetaIntegrationView: React.FC = () => {
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Active Page ID: <code className="text-slate-600 dark:text-slate-300">{metaConfig.pageId}</code> • Last Event: {new Date(metaConfig.lastSyncAt || Date.now()).toLocaleTimeString()}
+              Active Page ID: <code className="text-slate-600 dark:text-slate-300">{metaConfig.pageId}</code> • Connected to IMMEK Softech Academy
             </p>
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
+          <button
+            onClick={async () => {
+              const res = await syncMetaLeadForms();
+              setImportStatus(res.message);
+              setTimeout(() => setImportStatus(null), 5000);
+            }}
+            disabled={isSyncingMetaForms}
+            className="flex items-center space-x-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 transition active:scale-95 cursor-pointer"
+          >
+            <Zap className={`h-4 w-4 ${isSyncingMetaForms ? 'animate-spin text-amber-300' : 'text-amber-300'}`} />
+            <span>{isSyncingMetaForms ? 'Fetching Meta Leads...' : 'Pull Leads from Meta Forms'}</span>
+          </button>
+        </div>
       </div>
+
+      {importStatus && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-semibold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center justify-between shadow-sm animate-in fade-in">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span>{importStatus}</span>
+          </div>
+          <button 
+            onClick={() => setActiveTab('untouched')} 
+            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 transition cursor-pointer"
+          >
+            View in Untouched Leads →
+          </button>
+        </div>
+      )}
 
       {/* Two Column Section: CSV Importer & Webhook Configuration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

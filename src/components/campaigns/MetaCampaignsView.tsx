@@ -32,6 +32,8 @@ export const MetaCampaignsView: React.FC = () => {
     marketingConfig, 
     syncCampaignInsights, 
     isSyncingCampaigns,
+    syncMetaLeadForms,
+    isSyncingMetaForms,
     setActiveTab,
     setSearchQuery,
     leads,
@@ -43,11 +45,12 @@ export const MetaCampaignsView: React.FC = () => {
     adAccountSummaries
   } = useCRM();
 
-  const [dateRangeFilter, setDateRangeFilter] = useState('Last 7 Days');
+  const [dateRangeFilter, setDateRangeFilter] = useState('Last 30 Days');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [moduleFilter, setModuleFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [syncSuccessToast, setSyncSuccessToast] = useState(false);
+  const [leadSyncMessage, setLeadSyncMessage] = useState<string | null>(null);
 
   // Add Account Modal State
   const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState(false);
@@ -154,11 +157,18 @@ export const MetaCampaignsView: React.FC = () => {
 
   // Handle Sync
   const handleSync = async () => {
-    const success = await syncCampaignInsights();
+    const success = await syncCampaignInsights(dateRangeFilter);
     if (success) {
       setSyncSuccessToast(true);
       setTimeout(() => setSyncSuccessToast(false), 3500);
     }
+  };
+
+  // Handle Meta Forms Lead Sync
+  const handleSyncForms = async () => {
+    const res = await syncMetaLeadForms();
+    setLeadSyncMessage(res.message);
+    setTimeout(() => setLeadSyncMessage(null), 4000);
   };
 
   // Export Campaign Analytics CSV
@@ -250,10 +260,20 @@ export const MetaCampaignsView: React.FC = () => {
             onClick={handleSync}
             disabled={isSyncingCampaigns}
             className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-all cursor-pointer active:scale-95"
-            title="Fetch latest spend and insights from Meta Graph API"
+            title="Fetch latest spend, reach, impressions, and CPL from Meta Graph API"
           >
             <RefreshCw className={`h-4 w-4 ${isSyncingCampaigns ? 'animate-spin' : ''}`} />
-            {isSyncingCampaigns ? 'Syncing with Meta...' : 'Sync Meta Insights'}
+            {isSyncingCampaigns ? 'Syncing Campaigns...' : 'Sync Meta Insights'}
+          </button>
+
+          <button
+            onClick={handleSyncForms}
+            disabled={isSyncingMetaForms}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 transition-all cursor-pointer active:scale-95"
+            title="Fetch real inbound leads directly from Meta Instant Forms"
+          >
+            <Zap className={`h-4 w-4 ${isSyncingMetaForms ? 'animate-spin text-amber-300' : 'text-amber-300'}`} />
+            {isSyncingMetaForms ? 'Pulling Leads...' : 'Pull Meta Form Leads'}
           </button>
 
           <button
@@ -274,6 +294,24 @@ export const MetaCampaignsView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Leads Sync Alert */}
+      {leadSyncMessage && (
+        <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 text-purple-900 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300 flex items-center justify-between animate-fadeIn">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <span className="font-semibold text-sm">
+              {leadSyncMessage}
+            </span>
+          </div>
+          <button
+            onClick={() => setActiveTab('untouched')}
+            className="rounded-lg bg-purple-600 px-3 py-1 text-xs font-bold text-white hover:bg-purple-700 transition cursor-pointer"
+          >
+            View Untouched Leads &rarr;
+          </button>
+        </div>
+      )}
 
       {/* Sync Success Alert */}
       {syncSuccessToast && (

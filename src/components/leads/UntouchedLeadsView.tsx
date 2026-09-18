@@ -43,12 +43,21 @@ export const UntouchedLeadsView: React.FC = () => {
     isSyncingSheet,
     multiSheetConfig,
     syncAllSheetSources,
-    isSyncingAllSheets
+    isSyncingAllSheets,
+    syncMetaLeadForms,
+    isSyncingMetaForms
   } = useCRM();
 
   const [filterModule, setFilterModule] = useState('all');
   const [search, setSearch] = useState('');
   const [recentGraduation, setRecentGraduation] = useState<string | null>(null);
+  const [metaSyncNotice, setMetaSyncNotice] = useState<string | null>(null);
+
+  const handlePullMetaLeads = async () => {
+    const res = await syncMetaLeadForms();
+    setMetaSyncNotice(res.message);
+    setTimeout(() => setMetaSyncNotice(null), 4500);
+  };
 
   // Untouched leads: isProcessed === false
   const untouchedLeads = leads.filter(l => !l.isProcessed);
@@ -205,6 +214,16 @@ export const UntouchedLeadsView: React.FC = () => {
           </button>
 
           <button
+            onClick={handlePullMetaLeads}
+            disabled={isSyncingMetaForms}
+            className="flex items-center space-x-1.5 rounded-xl border border-purple-300 bg-gradient-to-r from-purple-50 to-indigo-50 px-3.5 py-2 text-xs font-bold text-purple-900 shadow-sm hover:from-purple-100 hover:to-indigo-100 dark:border-purple-800 dark:bg-purple-950/40 dark:text-purple-300 transition active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Fetch real inbound leads directly from active Meta Instant Forms"
+          >
+            <Zap className={`h-3.5 w-3.5 text-purple-600 dark:text-purple-400 ${isSyncingMetaForms ? 'animate-spin' : ''}`} />
+            <span>{isSyncingMetaForms ? 'Pulling Meta Leads...' : 'Pull Meta Form Leads'}</span>
+          </button>
+
+          <button
             onClick={() => setActiveTab('leads')}
             className="flex items-center space-x-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 transition cursor-pointer"
           >
@@ -213,6 +232,22 @@ export const UntouchedLeadsView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Meta Forms Sync Alert */}
+      {metaSyncNotice && (
+        <div className="rounded-xl border border-purple-200 bg-purple-50 p-3 text-xs font-semibold text-purple-900 dark:border-purple-800 dark:bg-purple-950/60 dark:text-purple-300 flex items-center justify-between shadow-sm animate-in fade-in">
+          <div className="flex items-center space-x-2">
+            <CheckCircle2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <span>{metaSyncNotice}</span>
+          </div>
+          <button 
+            onClick={() => setMetaSyncNotice(null)} 
+            className="text-purple-600 hover:text-purple-900 text-xs font-bold ml-4"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Success Notification Banner */}
       {recentGraduation && (

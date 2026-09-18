@@ -12,7 +12,13 @@ import {
   MultiSheetConfig
 } from '../types/crm';
 import { INITIAL_LEADS, DEFAULT_DROPDOWN_SETTINGS } from './mockData';
-import { DEFAULT_MARKETING_CONFIG, DEFAULT_CRM_SETTINGS, INITIAL_CAMPAIGN_INSIGHTS } from './metaAdsService';
+import { 
+  DEFAULT_MARKETING_CONFIG, 
+  DEFAULT_CRM_SETTINGS, 
+  INITIAL_CAMPAIGN_INSIGHTS,
+  META_DEFAULT_PAGE_TOKEN,
+  META_DEFAULT_PAGE_ID
+} from './metaAdsService';
 import { DEFAULT_MULTI_SHEET_CONFIG } from './googleSheetsService';
 
 const STORAGE_KEYS = {
@@ -23,7 +29,7 @@ const STORAGE_KEYS = {
   META_INTEGRATION: 'nexus_meta_integration_v2',
   MARKETING_CONFIG: 'nexus_meta_marketing_config_v2',
   CRM_SETTINGS: 'nexus_crm_settings_v2',
-  CAMPAIGN_INSIGHTS: 'nexus_campaign_insights_v2',
+  CAMPAIGN_INSIGHTS: 'nexus_meta_campaign_insights_v2',
   GOOGLE_SHEET: 'nexus_google_sheet_config_v2',
   MULTI_SHEET: 'nexus_multi_sheet_config_v2',
 };
@@ -42,12 +48,12 @@ export const DEFAULT_COLUMN_VISIBILITY: ColumnVisibility = {
 };
 
 export const DEFAULT_META_CONFIG: MetaIntegrationConfig = {
-  pageId: '108492049102948',
-  appId: '827491048291042',
-  appSecret: '8f94a82c9e81b947c94b8e2194a73b2c',
-  accessToken: 'EAAL8b...[Meta_Page_Access_Token]',
-  verifyToken: 'nexus_meta_leads_verify_token_2026',
-  webhookEndpoint: 'https://api.yourdomain.com/webhooks/meta-leadgen',
+  pageId: META_DEFAULT_PAGE_ID,
+  appId: '',
+  appSecret: '',
+  accessToken: META_DEFAULT_PAGE_TOKEN,
+  verifyToken: 'immek_meta_leads_verify_2026',
+  webhookEndpoint: 'https://api.immeksoftech.com/webhooks/meta-leadgen',
   isConnected: true,
   lastSyncAt: new Date().toISOString(),
 };
@@ -85,18 +91,15 @@ function saveToStorage<T>(key: string, value: T): void {
   }
 }
 
-// AUTO-PURGE ONE-TIME MIGRATION:
-// Clears previously cached mock/demo data from user's browser localStorage so CRM starts with original data only.
-const DEMO_CLEARED_FLAG = 'crm_demo_data_purged_v3';
+// AUTO-PREWIRE & INITIALIZATION:
+// Connects user's real Meta ad accounts and marketing configuration into localStorage automatically.
+const PREWIRED_FLAG = 'crm_meta_accounts_prewired_v1';
 if (typeof window !== 'undefined') {
   try {
-    if (localStorage.getItem(DEMO_CLEARED_FLAG) !== 'true') {
-      localStorage.removeItem(STORAGE_KEYS.LEADS);
-      localStorage.removeItem(STORAGE_KEYS.CAMPAIGN_INSIGHTS);
-      localStorage.removeItem(STORAGE_KEYS.MULTI_SHEET);
-      localStorage.removeItem(STORAGE_KEYS.GOOGLE_SHEET);
-      localStorage.removeItem(STORAGE_KEYS.MARKETING_CONFIG);
-      localStorage.setItem(DEMO_CLEARED_FLAG, 'true');
+    if (localStorage.getItem(PREWIRED_FLAG) !== 'true') {
+      localStorage.setItem(STORAGE_KEYS.MARKETING_CONFIG, JSON.stringify(DEFAULT_MARKETING_CONFIG));
+      localStorage.setItem(STORAGE_KEYS.META_INTEGRATION, JSON.stringify(DEFAULT_META_CONFIG));
+      localStorage.setItem(PREWIRED_FLAG, 'true');
     }
   } catch (e) {
     // Ignore localStorage errors
